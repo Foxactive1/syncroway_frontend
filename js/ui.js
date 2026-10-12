@@ -84,22 +84,22 @@ const ALERT_ICONS = {
 const ROLE_SHORTCUT = {
   merchant: {
     label: "Painel lojista",
-    href: "/app/painel.html",
+    href: "./painel.html",
   },
 
   provider: {
     label: "Painel prestador",
-    href: "/app/painel.html",
+    href: "./painel.html",
   },
 
   driver: {
     label: "Painel motorista",
-    href: "/app/painel.html",
+    href: "./painel.html",
   },
 
   admin: {
     label: "Painel administrativo",
-    href: "/app/painel.html",
+    href: "./painel.html",
   },
 };
 
@@ -407,7 +407,7 @@ export function renderHeader(
 
           <a
             class="sw-brand"
-            href="/app/index.html"
+            href="./index.html"
             aria-label="SyncroWay — página inicial"
           >
 
@@ -552,7 +552,7 @@ function renderDesktopUserMenu(
   const dashboard =
     shortcut || {
       label: "Meu painel",
-      href: "/app/painel.html",
+      href: "./painel.html",
     };
 
 
@@ -664,7 +664,7 @@ function renderGuestLinks() {
   return `
     <a
       class="sw-link"
-      href="/app/entrar.html"
+      href="./entrar.html"
     >
       Entrar
     </a>
@@ -672,7 +672,7 @@ function renderGuestLinks() {
 
     <a
       class="sw-link"
-      href="/app/entrar.html#cadastro"
+      href="./entrar.html#cadastro"
     >
       Criar conta
     </a>
@@ -694,7 +694,7 @@ function renderMobileUserLink(
           sw-link
           d-lg-none
         "
-        href="/app/entrar.html"
+        href="./entrar.html"
         aria-label="Entrar na conta"
         title="Entrar"
       >
@@ -715,7 +715,7 @@ function renderMobileUserLink(
         sw-link
         d-lg-none
       "
-      href="/app/painel.html"
+      href="./painel.html"
       aria-label="Abrir meu painel"
       title="Painel"
     >
@@ -752,7 +752,7 @@ function renderCartLink({
           ? "d-lg-none"
           : ""}
       "
-      href="/app/carrinho.html"
+      href="./carrinho.html"
       aria-label="Abrir carrinho"
       title="Carrinho"
     >
@@ -843,32 +843,32 @@ function renderNavigation(
     {
       id: "home",
       label: "Início",
-      href: "/app/index.html",
+      href: "./index.html",
     },
 
     {
       id: "products",
       label: "Produtos",
-      href: "/app/index.html?type=product",
+      href: "./index.html?type=product",
     },
 
     {
       id: "services",
       label: "Serviços",
-      href: "/app/index.html?type=service",
+      href: "./index.html?type=service",
     },
 
     {
       id: "cart",
       label: "Carrinho",
-      href: "/app/carrinho.html",
+      href: "./carrinho.html",
     },
 
     {
       id: "panel",
       label: "Painel",
       icon: "bi-speedometer2",
-      href: "/app/painel.html",
+      href: "./painel.html",
     },
   ];
 
@@ -1013,7 +1013,7 @@ function bindHeaderSearch() {
 
       const url =
         new URL(
-          "/app/index.html",
+          "./index.html",
           window.location.origin
         );
 
@@ -1124,7 +1124,7 @@ async function performLogout(
 
 
   window.location.href =
-    "/app/index.html";
+    "./index.html";
 
 
   if (

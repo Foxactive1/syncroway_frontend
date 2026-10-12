@@ -123,7 +123,7 @@ function productAction(item) {
         </button>
       </div>
       <div class="col-12">
-        <a class="btn btn-outline-primary w-100" href="/app/carrinho.html">
+        <a class="btn btn-outline-primary w-100" href="./carrinho.html">
           <i class="bi bi-cart3 me-1"></i>Ir ao carrinho
         </a>
       </div>
@@ -248,7 +248,7 @@ function bindServiceAction(item) {
 
 function renderLoginPrompt() {
   const verb = type === "service" ? "agendar" : "comprar";
-  return `<a class="btn btn-primary px-4 py-2" href="/app/entrar.html">
+  return `<a class="btn btn-primary px-4 py-2" href="./entrar.html">
     <i class="bi bi-box-arrow-in-right me-1"></i>Entre para ${verb}
   </a>`;
 }

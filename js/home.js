@@ -43,7 +43,7 @@ function syncUrl() {
     if (value) next.set(key, value);
   }
   const qs = next.toString();
-  window.history.replaceState({}, "", `/app/index.html${qs ? `?${qs}` : ""}`);
+  window.history.replaceState({}, "", `./index.html${qs ? `?${qs}` : ""}`);
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -57,7 +57,7 @@ const MODALITY_LABEL = {
 };
 
 function productCard(item) {
-  const url = `/app/produto.html?type=product&id=${item.id}`;
+  const url = `./produto.html?type=product&id=${item.id}`;
   const out = item.stock_status === "out";
   const low = item.stock_status === "low";
   return `<div class="col-6 col-md-4 col-lg-3">
@@ -86,7 +86,7 @@ function productCard(item) {
 }
 
 function serviceCard(item) {
-  const url = `/app/produto.html?type=service&id=${item.id}`;
+  const url = `./produto.html?type=service&id=${item.id}`;
   const duration = item.duration_minutes ? `${item.duration_minutes} min` : "a combinar";
   const modality = MODALITY_LABEL[item.modality] || item.modality || "a combinar";
   return `<div class="col-6 col-md-4 col-lg-3">
@@ -190,7 +190,7 @@ async function loadCatalog() {
 
 function handleNonCustomerClick() {
   if (!session.user) {
-    window.location.href = "/app/entrar.html";
+    window.location.href = "./entrar.html";
     return true;
   }
   // Usuário logado, mas não é customer (merchant/provider/driver/admin)

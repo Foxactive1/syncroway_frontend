@@ -192,6 +192,9 @@ function bindActionButtons(scope = document) {
         return;
       }
 
+      if (action === "manage-payment") {
+        openPaymentModal(Number(id), value); return;
+      }
       button.disabled = true;
       try {
         await runAction(action, id, value, button);
@@ -241,9 +244,11 @@ function bindCustomActions(scope = document) {
 // ─── Views por role ────────────────────────────────────────
 
 async function viewCustomerOrders() {
-  const orders = await api.orders().catch(() => []);
+  const orders = await api.orders();
   return dataTable("Meus pedidos", orders, {
     columns: ["code", "status", "payment_status", "total", "created_at"],
+    actions: row => row.status !== "cancelled" && row.payment_status === "pending"
+      ? `<a class="btn btn-sm btn-outline-primary" href="./pagamento.html?ids=${Number(row.id)}">Pagamento / cancelar</a>` : "",
   });
 }
 
@@ -710,6 +715,36 @@ async function viewAdminOrders() {
   const rows = await api.adminOrders();
   return dataTable("Pedidos", rows, {
     columns: ["id", "code", "status", "payment_status", "total", "created_at"],
+    actions: row => row.status !== "cancelled" && row.payment_status === "pending"
+      ? `<button class="btn btn-sm btn-outline-primary" data-action="manage-payment" data-id="${Number(row.id)}" data-value="${escapeHtml(row.payment_method)}">Gerenciar pagamento</button>` : "",
+  });
+}
+
+function openPaymentModal(id, method) {
+  document.getElementById("sw-payment-modal")?.remove();
+  const offline = ["cash", "card_on_delivery"].includes(method);
+  document.body.insertAdjacentHTML("beforeend", `<div class="modal fade" id="sw-payment-modal" tabindex="-1" aria-hidden="true"><div class="modal-dialog modal-dialog-centered"><div class="modal-content">
+    <div class="modal-header"><h2 class="modal-title h5">Pagamento do pedido ${id}</h2><button class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button></div>
+    <form class="modal-body" id="sw-payment-form">
+      <label class="form-label">Operação</label><select name="operation" class="form-select mb-3">
+      ${offline ? '<option value="offline">Confirmar recebimento na entrega</option>' : '<option value="reconcile">Conciliar cobrança existente</option><option value="cancel">Cancelar cobrança pendente no gateway</option>'}</select>
+      <label class="form-label">${offline ? 'Referência do comprovante/recebimento' : 'ID externo da cobrança (pay_..., para conciliação)'}</label>
+      <input name="reference" class="form-control mb-3" maxlength="255" ${offline ? 'required' : ''}>
+      <label class="d-flex gap-2 mb-3"><input type="checkbox" required>Conferi os dados e confirmo esta operação.</label>
+      <p class="small text-muted">Liquidação interna não comprova transferência bancária.</p>
+      <div data-error class="text-danger mb-2" role="alert"></div><button class="btn btn-primary" type="submit">Executar</button>
+    </form></div></div></div>`);
+  const el = document.getElementById("sw-payment-modal"); const modal = new bootstrap.Modal(el); modal.show();
+  el.addEventListener("hidden.bs.modal", () => el.remove());
+  el.querySelector("form").addEventListener("submit", async e => {
+    e.preventDefault(); const button = e.currentTarget.querySelector("button"); button.disabled = true;
+    const form = new FormData(e.currentTarget);
+    try {
+      if (form.get("operation") === "offline") await api.adminConfirmOfflinePayment(id, form.get("reference"));
+      else if (form.get("operation") === "cancel") await api.adminCancelPayment(id);
+      else await api.adminReconcilePayment(id, form.get("reference"));
+      modal.hide(); toast("Operação concluída", "success"); await refreshCurrentView();
+    } catch (error) { el.querySelector("[data-error]").textContent = error.message; button.disabled = false; }
   });
 }
 
@@ -1125,7 +1160,7 @@ function load() {
       "Entre para ver seu painel.",
       "info"
     )}
-      <a class="btn btn-primary" href="/app/entrar.html">Entrar</a></div>`;
+      <a class="btn btn-primary" href="./entrar.html">Entrar</a></div>`;
     return;
   }
   renderShell();

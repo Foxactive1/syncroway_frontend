@@ -21,7 +21,7 @@ function render(cart) {
     host.innerHTML = `<div class="sw-panel p-5 text-center">
       <i class="bi bi-cart-x fs-1 text-muted"></i>
       <h1 class="h5 mt-3">Seu carrinho está vazio</h1>
-      <a class="btn btn-primary mt-2" href="/app/index.html">Ver ofertas</a></div>`;
+      <a class="btn btn-primary mt-2" href="./index.html">Ver ofertas</a></div>`;
     return;
   }
   host.innerHTML = `
@@ -54,7 +54,7 @@ function render(cart) {
         <h2 class="h6">Resumo</h2>
         <div class="d-flex justify-content-between"><span>Subtotal</span><strong>${money(cart.subtotal)}</strong></div>
         <p class="text-muted small mt-2">A taxa de entrega é calculada por loja no checkout.</p>
-        <a class="btn btn-primary w-100" href="/app/checkout.html">Finalizar compra</a>
+        <a class="btn btn-primary w-100" href="./checkout.html">Finalizar compra</a>
       </div>
     </div>
   </div>`;
@@ -93,7 +93,7 @@ async function load() {
     host.innerHTML = `<div class="sw-panel p-4">${alertBox(
       "Entre com uma conta de cliente para usar o carrinho.",
       "info"
-    )}<a class="btn btn-primary" href="/app/entrar.html">Entrar</a></div>`;
+    )}<a class="btn btn-primary" href="./entrar.html">Entrar</a></div>`;
     return;
   }
   try {
