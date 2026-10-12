@@ -194,6 +194,10 @@ export const api = {
     request(`/cart/items/${id}`, { method: "DELETE", auth: true }),
   checkout: (payload) =>
     request("/checkout", { method: "POST", auth: true, body: payload }),
+  createPayment: (id, cpf_cnpj) => request(`/payments/orders/${id}`, { method: "POST", auth: true, body: { cpf_cnpj } }),
+  payment: (id) => request(`/payments/orders/${id}`, { auth: true }),
+  pix: (id) => request(`/payments/orders/${id}/pix`, { auth: true }),
+  cancelOrder: (id) => request(`/orders/${id}/cancel`, { method: "POST", auth: true }),
   orders: () => request("/orders", { auth: true }),
   order: (id) => request(`/orders/${id}`, { auth: true }),
 
@@ -268,6 +272,9 @@ merchantInventoryAlerts: (params = {}) =>
     request(`/driver/deliveries/${id}`, { method: "PATCH", auth: true, body: { status } }),
 
   // ─── Admin ────────────────────────────────────────
+  adminConfirmOfflinePayment: (id, reference) => request(`/admin/orders/${id}/confirm-offline-payment`, {method:"POST",auth:true,body:{reference}}),
+  adminReconcilePayment: (id, external_id) => request(`/admin/payments/orders/${id}/reconcile`, {method:"POST",auth:true,body:{external_id}}),
+  adminCancelPayment: id => request(`/admin/payments/orders/${id}/cancel`, {method:"POST",auth:true}),
   adminDashboard: () => request("/admin/dashboard", { auth: true }),
   adminFinance: (params = {}) =>
     request(`/admin/finance${withQuery(params)}`, { auth: true }),

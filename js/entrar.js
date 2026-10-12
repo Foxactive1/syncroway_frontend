@@ -7,6 +7,9 @@ renderFooter();
 
 document.getElementById("sw-api-base").textContent = API_BASE;
 
+if (!["localhost", "127.0.0.1"].includes(window.location.hostname)) {
+  document.getElementById("sw-api-form").hidden = true;
+}
 document.getElementById("sw-api-form").addEventListener("submit", (event) => {
   event.preventDefault();
   const value = event.currentTarget.querySelector("input").value.trim();
@@ -18,7 +21,7 @@ document.getElementById("sw-api-form").addEventListener("submit", (event) => {
 if (session.user) {
   document.getElementById("sw-forms").innerHTML = `<div class="sw-panel p-4">
     ${alertBox(`Você já está conectado como ${session.user.name}.`, "success")}
-    <a class="btn btn-primary" href="/app/painel.html">Ir para o painel</a></div>`;
+    <a class="btn btn-primary" href="./painel.html">Ir para o painel</a></div>`;
 }
 
 document.getElementById("sw-login")?.addEventListener("submit", async (event) => {
@@ -27,7 +30,7 @@ document.getElementById("sw-login")?.addEventListener("submit", async (event) =>
   try {
     const data = await api.login(form.get("email"), form.get("password"));
     session.set(data);
-    window.location.href = "/app/painel.html";
+    window.location.href = "./painel.html";
   } catch (error) {
     toast(error.message, "danger");
   }
@@ -44,8 +47,9 @@ document.getElementById("sw-register")?.addEventListener("submit", async (event)
       phone: form.get("phone") || null,
     });
     session.set(data);
-    window.location.href = "/app/index.html";
+    window.location.href = "./index.html";
   } catch (error) {
     toast(error.message, "danger");
   }
 });
+
