@@ -259,6 +259,63 @@ function renderRoleBlocked() {
   </div>`;
 }
 
+
+function setMeta(selector, attribute, value) {
+  const element = document.querySelector(selector);
+  if (element && value) element.setAttribute(attribute, value);
+}
+
+function updateItemMetadata(item) {
+  const name = String(item.name || "Item SyncroWay").trim();
+  const store = String(item.store || item.store_name || "SyncroWay").trim();
+  const description = String(item.description || `${name} — consulte preço, disponibilidade e informações no SyncroWay.`)
+    .replace(/\\s+/g, " ")
+    .trim()
+    .slice(0, 300);
+  const canonical = new URL(window.location.href);
+  canonical.hash = "";
+  const canonicalUrl = canonical.href;
+  const image = String(item.image_url || "").trim();
+  const isProduct = item.type !== "service";
+  const price = Number(item.price);
+  document.querySelector("link[rel='canonical']")?.setAttribute("href", canonicalUrl);
+  setMeta('meta[name="description"]', "content", description);
+  setMeta('meta[property="og:type"]', "content", isProduct ? "product" : "website");
+  setMeta('meta[property="og:title"]', "content", `${name} — SyncroWay`);
+  setMeta('meta[property="og:description"]', "content", description);
+  setMeta('meta[property="og:url"]', "content", canonicalUrl);
+  if (image && /^https?:\\/\\//i.test(image)) setMeta('meta[property="og:image"]', "content", image);
+  setMeta('meta[name="twitter:title"]', "content", `${name} — SyncroWay`);
+  setMeta('meta[name="twitter:description"]', "content", description);
+  const old = document.getElementById("sw-item-jsonld");
+  old?.remove();
+  if (isProduct && Number.isFinite(price) && price > 0) {
+    const schema = {
+      "@context": "https://schema.org",
+      "@type": "Product",
+      name,
+      description,
+      url: canonicalUrl,
+      brand: { "@type": "Brand", name: store },
+      offers: {
+        "@type": "Offer",
+        priceCurrency: "BRL",
+        price: price.toFixed(2),
+        url: canonicalUrl,
+        availability: item.stock_status === "out"
+          ? "https://schema.org/OutOfStock"
+          : "https://schema.org/InStock"
+      }
+    };
+    if (image && /^https?:\\/\\//i.test(image)) schema.image = image;
+    const script = document.createElement("script");
+    script.id = "sw-item-jsonld";
+    script.type = "application/ld+json";
+    script.textContent = JSON.stringify(schema);
+    document.head.appendChild(script);
+  }
+}
+
 // ═══════════════════════════════════════════════════════════
 // Load
 // ═══════════════════════════════════════════════════════════
@@ -275,6 +332,7 @@ function localDate(daysAhead = 0) {
 async function load() {
   if (!id) {
     host.innerHTML = alertBox("Item inválido. Volte ao catálogo e escolha outro.", "warning");
+    host.setAttribute("aria-busy", "false");
     return;
   }
 
@@ -284,11 +342,15 @@ async function load() {
 
     if (!item) {
       host.innerHTML = alertBox("Item não encontrado ou fora do ar.", "warning");
+      host.setAttribute("aria-busy", "false");
+      document.querySelector('meta[name="robots"]')?.setAttribute("content", "noindex,follow");
       return;
     }
 
     document.title = `${item.name} — SyncroWay`;
+    updateItemMetadata(item);
     host.innerHTML = detailHtml(item);
+    host.setAttribute("aria-busy", "false");
 
     const action = document.getElementById("sw-action");
 
@@ -310,6 +372,7 @@ async function load() {
     }
   } catch (error) {
     host.innerHTML = alertBox(error.message || "Erro ao carregar o item.");
+    host.setAttribute("aria-busy", "false");
   }
 }
 
