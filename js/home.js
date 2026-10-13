@@ -76,7 +76,7 @@ function productCard(item) {
         <a href="${url}" class="sw-title-clamp">${escapeHtml(item.name)}</a>
         <small class="text-muted">${escapeHtml(item.store || item.store_name || "")}</small>
         <div class="mt-auto pt-2">
-          <button class="btn btn-sm btn-soft-primary w-100" data-add="${item.id}" ${out ? "disabled" : ""}>
+          <button class="btn btn-sm btn-soft-primary w-100" data-add="${item.id}" aria-label="${out ? "Indisponível" : "Adicionar " + escapeHtml(item.name) + " ao carrinho"}" ${out ? "disabled" : ""}>
             <i class="bi bi-cart-plus me-1"></i>${out ? "Indisponível" : "Adicionar"}
           </button>
         </div>
@@ -119,16 +119,16 @@ function itemCard(item) {
 async function loadCategories() {
   try {
     const categories = await api.categories();
-    const all = `<button class="sw-catchip ${!state.category ? "active" : ""}" data-cat="">
-      <i class="bi bi-grid me-1"></i>Tudo</button>`;
+    const all = `<button type="button" class="sw-catchip ${!state.category ? "active" : ""}" aria-pressed="${!state.category}" data-cat="">
+      <i class="bi bi-grid me-1" aria-hidden="true"></i>Tudo</button>`;
     chips.innerHTML =
       all +
       categories
         .map(
           (c) =>
-            `<button class="sw-catchip ${state.category === c.slug ? "active" : ""}"
-              data-cat="${escapeHtml(c.slug)}">
-              <i class="bi ${c.icon || CATEGORY_ICONS[c.slug] || "bi-tag"} me-1"></i>
+            `<button type="button" class="sw-catchip ${state.category === c.slug ? "active" : ""}"
+              aria-pressed="${state.category === c.slug}" data-cat="${escapeHtml(c.slug)}">
+              <i class="bi ${c.icon || CATEGORY_ICONS[c.slug] || "bi-tag"} me-1" aria-hidden="true"></i>
               ${escapeHtml(c.name)}
             </button>`
         )
@@ -152,8 +152,9 @@ async function loadCategories() {
 // ═══════════════════════════════════════════════════════════
 
 async function loadCatalog() {
+  grid.setAttribute("aria-busy", "true");
   grid.innerHTML = skeletonCards();
-  heading.textContent = "Carregando...";
+  heading.textContent = "Carregando catálogo...";
 
   try {
     const data = await api.catalog({
@@ -164,7 +165,12 @@ async function loadCatalog() {
 
     heading.textContent = state.q
       ? `Resultados para "${state.q}" (${data.total})`
-      : `Ofertas de hoje (${data.total})`;
+      : state.type === "product"
+        ? `Produtos disponíveis (${data.total})`
+        : state.type === "service"
+          ? `Serviços disponíveis (${data.total})`
+          : `Ofertas de hoje (${data.total})`;
+    grid.setAttribute("aria-busy", "false");
 
     grid.innerHTML = data.items.length
       ? data.items.map(itemCard).join("")
@@ -180,6 +186,7 @@ async function loadCatalog() {
         ? error.message
         : "Erro inesperado ao carregar o catálogo.";
     grid.innerHTML = `<div class="col-12">${alertBox(message)}</div>`;
+    grid.setAttribute("aria-busy", "false");
     heading.textContent = "Ofertas de hoje";
   }
 }
@@ -232,9 +239,13 @@ function initTypeButtons() {
   const buttons = document.querySelectorAll("[data-type]");
   buttons.forEach((button) => {
     if (button.dataset.type === state.type) button.classList.add("active");
+    button.setAttribute("aria-pressed", String(button.dataset.type === state.type));
     button.addEventListener("click", () => {
       state.type = button.dataset.type;
-      buttons.forEach((b) => b.classList.toggle("active", b === button));
+      buttons.forEach((b) => {
+        b.classList.toggle("active", b === button);
+        b.setAttribute("aria-pressed", String(b === button));
+      });
       syncUrl();
       loadCatalog();
     });

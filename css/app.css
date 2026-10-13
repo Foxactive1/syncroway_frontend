@@ -2425,3 +2425,93 @@ textarea.form-control {
 
   opacity: 0.55;
 }
+
+
+/* SEO / Acessibilidade — reforços responsivos WCAG */
+html {
+  scroll-padding-top: 1rem;
+}
+
+main [id] {
+  scroll-margin-top: 1rem;
+}
+
+:where(a, button, input, select, textarea, summary, [role="button"]):focus-visible {
+  outline: 3px solid #4b2dbd;
+  outline-offset: 3px;
+  box-shadow: 0 0 0 2px #fff;
+}
+
+.sw-catchip,
+.sw-header a,
+.sw-header button,
+.sw-footer a {
+  touch-action: manipulation;
+}
+
+.sw-catchip {
+  min-height: 44px;
+}
+
+.sw-header-top .sw-link,
+.sw-header-top .sw-logout-button {
+  min-width: 44px;
+  min-height: 44px;
+}
+
+img {
+  max-width: 100%;
+}
+
+@media (max-width: 767.98px) {
+  html,
+  body {
+    max-width: 100%;
+    overflow-x: clip;
+  }
+
+  input:not([type="checkbox"]):not([type="radio"]),
+  select,
+  textarea {
+    font-size: 16px;
+  }
+
+  .btn,
+  .form-control,
+  .form-select {
+    min-height: 44px;
+  }
+
+  .sw-catchip {
+    flex: 0 0 auto;
+    padding-inline: 0.9rem;
+  }
+
+  .sw-header-top .container {
+    min-width: 0;
+  }
+
+  .sw-search {
+    min-width: 0;
+  }
+
+  .sw-search .form-control {
+    font-size: 16px;
+  }
+
+  .sw-panel,
+  .sw-card,
+  .sw-hero {
+    overflow-wrap: anywhere;
+  }
+
+  .table-responsive {
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+@media (forced-colors: active) {
+  :where(a, button, input, select, textarea, [tabindex]):focus-visible {
+    outline: 2px solid CanvasText;
+  }
+}

@@ -1,0 +1,9 @@
+User-agent: *
+Allow: /
+Disallow: /entrar.html
+Disallow: /carrinho.html
+Disallow: /checkout.html
+Disallow: /painel.html
+Disallow: /pagamento.html
+
+Sitemap: https://syncrowayfrontend.vercel.app/sitemap.xml
