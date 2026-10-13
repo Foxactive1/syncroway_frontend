@@ -23,3 +23,29 @@ test('checkout sends no freight and offers payment continuation', async () => {
   assert.ok(src.includes('pagamento.html?ids='));
   assert.ok(!src.includes('Pedido confirmado!'));
 });
+
+
+test('SEO files are included in the static deployment and public pages are discoverable', async () => {
+  const build = await readFile('scripts/build.mjs', 'utf8');
+  const robots = await readFile('robots.txt', 'utf8');
+  const sitemap = await readFile('sitemap.xml', 'utf8');
+  const home = await readFile('index.html', 'utf8');
+  const product = await readFile('produto.html', 'utf8');
+  assert.ok(build.includes("'robots.txt'"));
+  assert.ok(build.includes("'sitemap.xml'"));
+  assert.ok(robots.includes('Sitemap: https://syncrowayfrontend.vercel.app/sitemap.xml'));
+  assert.ok(robots.includes('Disallow: /painel.html'));
+  assert.ok(sitemap.includes('<loc>https://syncrowayfrontend.vercel.app/</loc>'));
+  assert.ok(home.includes('rel="canonical"'));
+  assert.ok(home.includes('application/ld+json'));
+  assert.ok(product.includes('sw-skip-link'));
+  assert.ok(product.includes('aria-busy="true"'));
+});
+
+test('product details update canonical and structured metadata from the selected item', async () => {
+  const src = await readFile('js/produto.js', 'utf8');
+  assert.ok(src.includes('function updateItemMetadata(item)'));
+  assert.ok(src.includes('application/ld+json') || src.includes('application/ld+json'));
+  assert.ok(src.includes('schema.org/Product'));
+  assert.ok(src.includes('og:description'));
+});
