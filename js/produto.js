@@ -269,7 +269,7 @@ function updateItemMetadata(item) {
   const name = String(item.name || "Item SyncroWay").trim();
   const store = String(item.store || item.store_name || "SyncroWay").trim();
   const description = String(item.description || `${name} — consulte preço, disponibilidade e informações no SyncroWay.`)
-    .replace(/\\s+/g, " ")
+    .replace(/\s+/g, " ")
     .trim()
     .slice(0, 300);
   const canonical = new URL(window.location.href);
@@ -284,7 +284,7 @@ function updateItemMetadata(item) {
   setMeta('meta[property="og:title"]', "content", `${name} — SyncroWay`);
   setMeta('meta[property="og:description"]', "content", description);
   setMeta('meta[property="og:url"]', "content", canonicalUrl);
-  if (image && /^https?:\\/\\//i.test(image)) setMeta('meta[property="og:image"]', "content", image);
+  if (image.startsWith("https://") || image.startsWith("http://")) setMeta('meta[property="og:image"]', "content", image);
   setMeta('meta[name="twitter:title"]', "content", `${name} — SyncroWay`);
   setMeta('meta[name="twitter:description"]', "content", description);
   const old = document.getElementById("sw-item-jsonld");
@@ -302,12 +302,9 @@ function updateItemMetadata(item) {
         priceCurrency: "BRL",
         price: price.toFixed(2),
         url: canonicalUrl,
-        availability: item.stock_status === "out"
-          ? "https://schema.org/OutOfStock"
-          : "https://schema.org/InStock"
       }
     };
-    if (image && /^https?:\\/\\//i.test(image)) schema.image = image;
+  if (image.startsWith("https://") || image.startsWith("http://")) setMeta('meta[property="og:image"]', "content", image);
     const script = document.createElement("script");
     script.id = "sw-item-jsonld";
     script.type = "application/ld+json";
