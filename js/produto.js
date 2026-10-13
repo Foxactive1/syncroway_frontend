@@ -111,10 +111,10 @@ function productAction(item) {
     <div class="row g-2 align-items-stretch">
       <div class="col-12 col-sm-auto">
         <div class="input-group" style="max-width:160px">
-          <button class="btn btn-outline-secondary" id="sw-minus" type="button" ${out ? "disabled" : ""}>−</button>
+          <button class="btn btn-outline-secondary" id="sw-minus" type="button" aria-label="Diminuir quantidade" ${out ? "disabled" : ""}>−</button>
           <input id="sw-qty" type="number" class="form-control text-center"
-            value="1" min="1" max="${maxQty}" ${out ? "disabled" : ""}>
-          <button class="btn btn-outline-secondary" id="sw-plus" type="button" ${out ? "disabled" : ""}>+</button>
+            value="1" min="1" max="${maxQty}" aria-label="Quantidade do produto" ${out ? "disabled" : ""}>
+          <button class="btn btn-outline-secondary" id="sw-plus" type="button" aria-label="Aumentar quantidade" ${out ? "disabled" : ""}>+</button>
         </div>
       </div>
       <div class="col-12 col-sm">
@@ -304,7 +304,7 @@ function updateItemMetadata(item) {
         url: canonicalUrl,
       }
     };
-  if (image.startsWith("https://") || image.startsWith("http://")) setMeta('meta[property="og:image"]', "content", image);
+    if (image.startsWith("https://") || image.startsWith("http://")) schema.image = image;
     const script = document.createElement("script");
     script.id = "sw-item-jsonld";
     script.type = "application/ld+json";
