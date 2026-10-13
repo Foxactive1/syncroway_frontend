@@ -120,7 +120,7 @@ async function loadCategories() {
   try {
     const categories = await api.categories();
     const all = `<button type="button" class="sw-catchip ${!state.category ? "active" : ""}" aria-pressed="${!state.category}" data-cat="">
-      <i class="bi bi-grid me-1"></i>Tudo</button>`;
+      <i class="bi bi-grid me-1" aria-hidden="true"></i>Tudo</button>`;
     chips.innerHTML =
       all +
       categories
@@ -128,7 +128,7 @@ async function loadCategories() {
           (c) =>
             `<button type="button" class="sw-catchip ${state.category === c.slug ? "active" : ""}"
               aria-pressed="${state.category === c.slug}" data-cat="${escapeHtml(c.slug)}">
-              <i class="bi ${c.icon || CATEGORY_ICONS[c.slug] || "bi-tag"} me-1"></i>
+              <i class="bi ${c.icon || CATEGORY_ICONS[c.slug] || "bi-tag"} me-1" aria-hidden="true"></i>
               ${escapeHtml(c.name)}
             </button>`
         )
@@ -152,8 +152,9 @@ async function loadCategories() {
 // ═══════════════════════════════════════════════════════════
 
 async function loadCatalog() {
+  grid.setAttribute("aria-busy", "true");
   grid.innerHTML = skeletonCards();
-  heading.textContent = "Carregando...";
+  heading.textContent = "Carregando catálogo...";
 
   try {
     const data = await api.catalog({
