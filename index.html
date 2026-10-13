@@ -16,8 +16,34 @@
 
   <meta
     name="description"
-    content="Compre produtos e contrate serviços das lojas e prestadores da sua região no SyncroWay."
+    content="Encontre produtos, lojas e serviços da sua região no SyncroWay. Compare opções, compre online e combine entregas com parceiros locais."
   >
+  <link rel="canonical" href="https://syncrowayfrontend.vercel.app/">
+  <meta property="og:type" content="website">
+  <meta property="og:locale" content="pt_BR">
+  <meta property="og:site_name" content="SyncroWay">
+  <meta property="og:title" content="SyncroWay — Marketplace de produtos e serviços">
+  <meta property="og:description" content="Encontre produtos, lojas e serviços da sua região em um só lugar.">
+  <meta property="og:url" content="https://syncrowayfrontend.vercel.app/">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="SyncroWay — Marketplace de produtos e serviços">
+  <meta name="twitter:description" content="Encontre produtos, lojas e serviços da sua região em um só lugar.">
+  <meta name="robots" content="index,follow,max-image-preview:large">
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    "name": "SyncroWay",
+    "url": "https://syncrowayfrontend.vercel.app/",
+    "inLanguage": "pt-BR",
+    "description": "Marketplace para encontrar produtos, lojas e serviços da região.",
+    "potentialAction": {
+      "@type": "SearchAction",
+      "target": "https://syncrowayfrontend.vercel.app/index.html?q={search_term_string}",
+      "query-input": "required name=search_term_string"
+    }
+  }
+  </script>
 
   <title>
     SyncroWay — Marketplace de produtos e serviços
@@ -76,12 +102,14 @@
 
       <div
         class="d-flex gap-2 flex-wrap"
+        role="group"
         aria-label="Filtrar catálogo por tipo"
       >
 
         <button
           class="btn btn-dark btn-sm"
           type="button"
+          aria-pressed="false"
           data-type="product"
         >
           Ver produtos
@@ -90,6 +118,7 @@
         <button
           class="btn btn-outline-dark btn-sm"
           type="button"
+          aria-pressed="false"
           data-type="service"
         >
           Ver serviços
@@ -98,6 +127,7 @@
         <button
           class="btn btn-outline-dark btn-sm"
           type="button"
+          aria-pressed="false"
           data-type=""
         >
           Ver tudo
@@ -115,7 +145,8 @@
       <div
         id="sw-categories"
         class="d-flex gap-2 overflow-auto pb-3"
-        aria-label="Categorias"
+        role="group"
+        aria-label="Filtrar por categoria"
       ></div>
 
 
