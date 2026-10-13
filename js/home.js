@@ -76,7 +76,7 @@ function productCard(item) {
         <a href="${url}" class="sw-title-clamp">${escapeHtml(item.name)}</a>
         <small class="text-muted">${escapeHtml(item.store || item.store_name || "")}</small>
         <div class="mt-auto pt-2">
-          <button class="btn btn-sm btn-soft-primary w-100" data-add="${item.id}" ${out ? "disabled" : ""}>
+          <button class="btn btn-sm btn-soft-primary w-100" data-add="${item.id}" aria-label="${out ? "Indisponível" : "Adicionar " + escapeHtml(item.name) + " ao carrinho"}" ${out ? "disabled" : ""}>
             <i class="bi bi-cart-plus me-1"></i>${out ? "Indisponível" : "Adicionar"}
           </button>
         </div>
