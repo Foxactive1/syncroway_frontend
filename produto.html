@@ -16,8 +16,16 @@
 
   <meta
     name="description"
-    content="Veja produtos e serviços no SyncroWay, consulte preços, estoque e faça compras ou agendamentos."
+    content="Consulte detalhes, preço, disponibilidade e informações de produtos e serviços anunciados no SyncroWay."
   >
+  <meta name="robots" content="index,follow,max-image-preview:large">
+  <meta property="og:type" content="product">
+  <meta property="og:site_name" content="SyncroWay">
+  <meta property="og:locale" content="pt_BR">
+  <meta property="og:title" content="Detalhes do item — SyncroWay">
+  <meta property="og:description" content="Consulte detalhes, preço e disponibilidade no SyncroWay.">
+  <meta name="twitter:card" content="summary">
+  <link rel="canonical" href="https://syncrowayfrontend.vercel.app/produto.html">
 
   <title>Detalhes do item — SyncroWay</title>
 
@@ -42,6 +50,8 @@
 
 
 <body>
+
+  <a href="#main-content" class="sw-skip-link">Ir para o conteúdo</a>
 
   <!-- Header global -->
   <div id="sw-header"></div>
@@ -74,6 +84,8 @@
     <section
       id="sw-detail"
       aria-live="polite"
+      aria-busy="true"
+      aria-label="Detalhes do produto ou serviço"
     ></section>
 
   </main>
