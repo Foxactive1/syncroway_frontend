@@ -119,15 +119,15 @@ function itemCard(item) {
 async function loadCategories() {
   try {
     const categories = await api.categories();
-    const all = `<button class="sw-catchip ${!state.category ? "active" : ""}" data-cat="">
+    const all = `<button type="button" class="sw-catchip ${!state.category ? "active" : ""}" aria-pressed="${!state.category}" data-cat="">
       <i class="bi bi-grid me-1"></i>Tudo</button>`;
     chips.innerHTML =
       all +
       categories
         .map(
           (c) =>
-            `<button class="sw-catchip ${state.category === c.slug ? "active" : ""}"
-              data-cat="${escapeHtml(c.slug)}">
+            `<button type="button" class="sw-catchip ${state.category === c.slug ? "active" : ""}"
+              aria-pressed="${state.category === c.slug}" data-cat="${escapeHtml(c.slug)}">
               <i class="bi ${c.icon || CATEGORY_ICONS[c.slug] || "bi-tag"} me-1"></i>
               ${escapeHtml(c.name)}
             </button>`
@@ -164,7 +164,12 @@ async function loadCatalog() {
 
     heading.textContent = state.q
       ? `Resultados para "${state.q}" (${data.total})`
-      : `Ofertas de hoje (${data.total})`;
+      : state.type === "product"
+        ? `Produtos disponíveis (${data.total})`
+        : state.type === "service"
+          ? `Serviços disponíveis (${data.total})`
+          : `Ofertas de hoje (${data.total})`;
+    grid.setAttribute("aria-busy", "false");
 
     grid.innerHTML = data.items.length
       ? data.items.map(itemCard).join("")
@@ -180,6 +185,7 @@ async function loadCatalog() {
         ? error.message
         : "Erro inesperado ao carregar o catálogo.";
     grid.innerHTML = `<div class="col-12">${alertBox(message)}</div>`;
+    grid.setAttribute("aria-busy", "false");
     heading.textContent = "Ofertas de hoje";
   }
 }
@@ -232,9 +238,13 @@ function initTypeButtons() {
   const buttons = document.querySelectorAll("[data-type]");
   buttons.forEach((button) => {
     if (button.dataset.type === state.type) button.classList.add("active");
+    button.setAttribute("aria-pressed", String(button.dataset.type === state.type));
     button.addEventListener("click", () => {
       state.type = button.dataset.type;
-      buttons.forEach((b) => b.classList.toggle("active", b === button));
+      buttons.forEach((b) => {
+        b.classList.toggle("active", b === button);
+        b.setAttribute("aria-pressed", String(b === button));
+      });
       syncUrl();
       loadCatalog();
     });
