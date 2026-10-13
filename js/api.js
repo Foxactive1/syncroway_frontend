@@ -1,7 +1,7 @@
 import { API_BASE } from "./config.js";
 
 const STORE_KEY = "syncroway_session";
-const REQUEST_TIMEOUT_MS = 15000;
+const REQUEST_TIMEOUT_MS = 60000;
 
 export const session = {
   get() {
