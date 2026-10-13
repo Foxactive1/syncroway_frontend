@@ -45,7 +45,7 @@ test('SEO files are included in the static deployment and public pages are disco
 test('product details update canonical and structured metadata from the selected item', async () => {
   const src = await readFile('js/produto.js', 'utf8');
   assert.ok(src.includes('function updateItemMetadata(item)'));
-  assert.ok(src.includes('application/ld+json') || src.includes('application/ld+json'));
-  assert.ok(src.includes('schema.org/Product'));
+  assert.ok(src.includes('application/ld+json'));
+  assert.ok(src.includes('"@type": "Product"'));
   assert.ok(src.includes('og:description'));
 });
