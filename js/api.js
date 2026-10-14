@@ -280,6 +280,7 @@ merchantInventoryAlerts: (params = {}) =>
   adminCreateMediaAsset: (payload) => request("/admin/media-assets", { method: "POST", auth: true, body: payload }),
   adminUpdateMediaAsset: (id, payload) => request(`/admin/media-assets/${id}`, { method: "PATCH", auth: true, body: payload }),
   adminArchiveMediaAsset: (id) => request(`/admin/media-assets/${id}`, { method: "DELETE", auth: true }),
+  adminLinkMediaAssetUsage: (id, payload) => request(`/admin/media-assets/${id}/usages`, { method: "POST", auth: true, body: payload }),
   adminFinance: (params = {}) =>
     request(`/admin/finance${withQuery(params)}`, { auth: true }),
   adminTransactions: (params = {}) =>
