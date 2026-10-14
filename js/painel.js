@@ -663,6 +663,16 @@ async function viewAdminMediaAssets() {
             ${item.is_default ? "" : `<button class="btn btn-sm btn-outline-primary" data-action="media-default" data-id="${item.id}">Tornar padrão</button>`}
             <button class="btn btn-sm btn-outline-danger" data-action="media-archive" data-id="${item.id}">Arquivar</button>
           </div>
+          <form class="media-usage-form mt-3 border-top pt-2" data-asset-id="${item.id}">
+            <label class="form-label small mb-1">Vincular imagem a um registro</label>
+            <div class="d-flex gap-1 mb-1">
+              <select name="entity_type" class="form-select form-select-sm" aria-label="Tipo de registro">
+                <option value="product">Produto</option><option value="service">Serviço</option><option value="store">Loja</option>
+              </select>
+              <input name="entity_id" type="number" min="1" class="form-control form-control-sm" required placeholder="ID" aria-label="ID do registro">
+            </div>
+            <button class="btn btn-sm btn-primary w-100" type="submit">Aplicar imagem</button>
+          </form>
         </div>
       </article></div>`).join("") || '<div class="col-12"><div class="alert alert-light border">Nenhuma imagem cadastrada. Adicione a primeira usando uma URL HTTPS.</div></div>'}</div>`;
 }
@@ -695,6 +705,26 @@ function bindMediaLibrary(scope) {
       toast("Imagem cadastrada na biblioteca.", "success");
       await refreshCurrentView();
     } catch (err) { error.textContent = err.message; submit.disabled = false; }
+  });
+  scope.querySelectorAll(".media-usage-form").forEach(linkForm => {
+    linkForm.addEventListener("submit", async event => {
+      event.preventDefault();
+      const button = linkForm.querySelector('button[type="submit"]');
+      const formData = new FormData(linkForm);
+      button.disabled = true;
+      try {
+        await api.adminLinkMediaAssetUsage(Number(linkForm.dataset.assetId), {
+          entity_type: String(formData.get("entity_type")),
+          entity_id: Number(formData.get("entity_id")),
+          role: "primary",
+        });
+        toast("Imagem vinculada. Alterações futuras na biblioteca serão sincronizadas.", "success");
+        await refreshCurrentView();
+      } catch (error) {
+        toast(error.message, "danger");
+        button.disabled = false;
+      }
+    });
   });
   scope.querySelector("#sw-media-search-form")?.addEventListener("submit", async e => {
     e.preventDefault();
