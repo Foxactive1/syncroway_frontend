@@ -649,7 +649,7 @@ async function viewAdminMediaAssets() {
       </form>
     </div>
     <div class="sw-panel p-3 mb-3">
-      <form id="sw-media-search-form" class="d-flex gap-2"><input id="sw-media-search" class="form-control" placeholder="Pesquisar por nome, código ou categoria"><button class="btn btn-outline-primary">Pesquisar</button></form>
+      <form id="sw-media-search-form" class="d-flex gap-2"><input id="sw-media-search" class="form-control" value="${escapeHtml(mediaSearchTerm)}" placeholder="Pesquisar por nome, código ou categoria"><button class="btn btn-outline-primary">Pesquisar</button></form>
       <div class="small text-muted mt-2">${items.length} imagem(ns) ativas</div>
     </div>
     <div class="row g-3">${items.map(item => `
@@ -658,6 +658,11 @@ async function viewAdminMediaAssets() {
         <div class="p-1"><div class="fw-semibold small mt-2">${escapeHtml(item.name)}</div>
           <div class="small text-muted">${escapeHtml(item.category)} · ${escapeHtml(item.slug)}</div>
           ${item.is_default ? '<span class="badge text-bg-success my-1">Padrão</span>' : ""}
+          <form class="media-update-form mt-2" data-asset-id="${item.id}">
+            <label class="form-label small mb-1">Atualizar URL central</label>
+            <input name="image_url" type="url" pattern="https://.+" class="form-control form-control-sm" required value="${escapeHtml(item.image_url)}" aria-label="Nova URL da imagem">
+            <button class="btn btn-sm btn-outline-primary w-100 mt-1" type="submit">Salvar nova URL</button>
+          </form>
           <div class="d-flex flex-wrap gap-1 mt-2">
             <button class="btn btn-sm btn-outline-secondary" data-action="media-copy" data-url="${escapeHtml(item.image_url)}"><i class="bi bi-clipboard me-1"></i>URL</button>
             ${item.is_default ? "" : `<button class="btn btn-sm btn-outline-primary" data-action="media-default" data-id="${item.id}">Tornar padrão</button>`}
@@ -705,6 +710,24 @@ function bindMediaLibrary(scope) {
       toast("Imagem cadastrada na biblioteca.", "success");
       await refreshCurrentView();
     } catch (err) { error.textContent = err.message; submit.disabled = false; }
+  });
+  scope.querySelectorAll(".media-update-form").forEach(updateForm => {
+    updateForm.addEventListener("submit", async event => {
+      event.preventDefault();
+      const button = updateForm.querySelector('button[type="submit"]');
+      const formData = new FormData(updateForm);
+      button.disabled = true;
+      try {
+        await api.adminUpdateMediaAsset(Number(updateForm.dataset.assetId), {
+          image_url: String(formData.get("image_url") || "").trim(),
+        });
+        toast("URL atualizada. Registros vinculados foram sincronizados.", "success");
+        await refreshCurrentView();
+      } catch (error) {
+        toast(error.message, "danger");
+        button.disabled = false;
+      }
+    });
   });
   scope.querySelectorAll(".media-usage-form").forEach(linkForm => {
     linkForm.addEventListener("submit", async event => {
