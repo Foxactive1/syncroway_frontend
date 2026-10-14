@@ -628,7 +628,7 @@ async function viewDriverHistory() {
 
 async function viewAdminMediaAssets() {
   const [result, queryCategories] = await Promise.all([
-    api.adminMediaAssets({ q: document.getElementById("sw-media-search")?.value || "" }),
+    api.adminMediaAssets({ q: mediaSearchTerm }),
     Promise.resolve(["geral", "servicos", "eletronicos", "moda", "alimentacao", "esportes", "lojas", "banners"]),
   ]);
   const items = result.items || [];
@@ -728,6 +728,7 @@ function bindMediaLibrary(scope) {
   });
   scope.querySelector("#sw-media-search-form")?.addEventListener("submit", async e => {
     e.preventDefault();
+    mediaSearchTerm = scope.querySelector("#sw-media-search")?.value?.trim() || "";
     await refreshCurrentView();
   });
 }
@@ -1167,6 +1168,7 @@ const VIEWS = {
 };
 
 let currentView = "";
+let mediaSearchTerm = "";
 
 async function renderCurrentView() {
   const role = session.role;
