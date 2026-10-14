@@ -276,6 +276,10 @@ merchantInventoryAlerts: (params = {}) =>
   adminReconcilePayment: (id, external_id) => request(`/admin/payments/orders/${id}/reconcile`, {method:"POST",auth:true,body:{external_id}}),
   adminCancelPayment: id => request(`/admin/payments/orders/${id}/cancel`, {method:"POST",auth:true}),
   adminDashboard: () => request("/admin/dashboard", { auth: true }),
+  adminMediaAssets: (params = {}) => request(`/admin/media-assets${withQuery(params)}`, { auth: true }),
+  adminCreateMediaAsset: (payload) => request("/admin/media-assets", { method: "POST", auth: true, body: payload }),
+  adminUpdateMediaAsset: (id, payload) => request(`/admin/media-assets/${id}`, { method: "PATCH", auth: true, body: payload }),
+  adminArchiveMediaAsset: (id) => request(`/admin/media-assets/${id}`, { method: "DELETE", auth: true }),
   adminFinance: (params = {}) =>
     request(`/admin/finance${withQuery(params)}`, { auth: true }),
   adminTransactions: (params = {}) =>
