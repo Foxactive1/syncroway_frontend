@@ -55,6 +55,7 @@ const NAV = {
     { id: "drivers", label: "Motoristas" },
     { id: "deliveries", label: "Entregas" },
     { id: "orders", label: "Pedidos" },
+    { id: "media", label: "Biblioteca de mídia" },
   ],
 };
 
@@ -223,6 +224,9 @@ async function runAction(action, id, value, button) {
     "delivery-complete": () => api.driverUpdateDelivery(id, "delivered"),
     "transaction-settle": () => api.adminSettleTransaction(id),
     "product-archive": () => api.merchantArchiveProduct(id),
+    "media-archive": () => api.adminArchiveMediaAsset(id),
+    "media-default": () => api.adminUpdateMediaAsset(id, { is_default: true }),
+    "media-copy": async () => { const url = button?.dataset.url || ""; try { await navigator.clipboard.writeText(url); toast("URL copiada.", "success"); } catch { window.prompt("Copie a URL da imagem:", url); } },
 
     // Lê o estado do próprio botão que foi clicado, sem re-query no DOM.
     "driver-toggle-availability": () => {
@@ -619,6 +623,83 @@ async function viewDriverHistory() {
   ${dataTable("Histórico", data.items || [], {
     columns: ["order_id", "delivery_address", "delivery_fee", "delivered_at"],
   })}`;
+}
+
+
+async function viewAdminMediaAssets() {
+  const [result, queryCategories] = await Promise.all([
+    api.adminMediaAssets({ q: document.getElementById("sw-media-search")?.value || "" }),
+    Promise.resolve(["geral", "servicos", "eletronicos", "moda", "alimentacao", "esportes", "lojas", "banners"]),
+  ]);
+  const items = result.items || [];
+  return `
+    <div class="sw-panel p-3 mb-3">
+      <h2 class="h6"><i class="bi bi-images me-2"></i>Biblioteca de mídia</h2>
+      <p class="small text-muted">Cadastre uma URL HTTPS uma vez e reutilize a imagem em produtos, serviços e lojas. Os arquivos ficam no serviço de imagens; o Neon guarda os metadados e o endereço.</p>
+      <form id="sw-media-form" class="row g-2">
+        <div class="col-12 col-md-6"><label class="form-label small">Nome da imagem</label><input name="name" class="form-control" maxlength="160" required placeholder="Ex.: Manutenção de computadores"></div>
+        <div class="col-6 col-md-3"><label class="form-label small">Categoria</label><select name="category" class="form-select">${queryCategories.map(c => `<option value="${c}">${c.replace(/_/g," ")}</option>`).join("")}</select></div>
+        <div class="col-6 col-md-3"><label class="form-label small">Origem/licença</label><input name="license" class="form-control" placeholder="Ex.: Unsplash License"></div>
+        <div class="col-12"><label class="form-label small">URL HTTPS da imagem</label><input name="image_url" type="url" pattern="https://.+" class="form-control" required placeholder="https://..."></div>
+        <div class="col-12 col-md-6"><label class="form-label small">Tags (separadas por vírgula)</label><input name="tags" class="form-control" placeholder="informática, assistência, técnico"></div>
+        <div class="col-12 col-md-6"><label class="form-label small">Texto alternativo</label><input name="alt_text" class="form-control" maxlength="300" placeholder="Descrição acessível da imagem"></div>
+        <div class="col-12"><div class="form-check"><input class="form-check-input" type="checkbox" name="is_default" id="sw-media-default"><label class="form-check-label small" for="sw-media-default">Definir como imagem padrão desta categoria</label></div></div>
+        <div class="col-12 d-flex gap-2 align-items-center"><img id="sw-media-preview" alt="Pré-visualização" class="rounded border d-none" style="width:72px;height:72px;object-fit:cover"><button class="btn btn-primary" type="submit"><i class="bi bi-plus-lg me-1"></i>Cadastrar imagem</button><span class="small text-muted">Upload de arquivo será ativado após configurar o provedor de armazenamento.</span></div>
+        <div id="sw-media-error" class="col-12 small text-danger" role="alert"></div>
+      </form>
+    </div>
+    <div class="sw-panel p-3 mb-3">
+      <form id="sw-media-search-form" class="d-flex gap-2"><input id="sw-media-search" class="form-control" placeholder="Pesquisar por nome, código ou categoria"><button class="btn btn-outline-primary">Pesquisar</button></form>
+      <div class="small text-muted mt-2">${items.length} imagem(ns) ativas</div>
+    </div>
+    <div class="row g-3">${items.map(item => `
+      <div class="col-6 col-md-4 col-xl-3"><article class="sw-panel p-2 h-100">
+        <img src="${escapeHtml(item.image_url)}" alt="${escapeHtml(item.alt_text || item.name)}" loading="lazy" class="w-100 rounded" style="aspect-ratio:4/3;object-fit:cover" onerror="this.style.display='none'">
+        <div class="p-1"><div class="fw-semibold small mt-2">${escapeHtml(item.name)}</div>
+          <div class="small text-muted">${escapeHtml(item.category)} · ${escapeHtml(item.slug)}</div>
+          ${item.is_default ? '<span class="badge text-bg-success my-1">Padrão</span>' : ""}
+          <div class="d-flex flex-wrap gap-1 mt-2">
+            <button class="btn btn-sm btn-outline-secondary" data-action="media-copy" data-url="${escapeHtml(item.image_url)}"><i class="bi bi-clipboard me-1"></i>URL</button>
+            ${item.is_default ? "" : `<button class="btn btn-sm btn-outline-primary" data-action="media-default" data-id="${item.id}">Tornar padrão</button>`}
+            <button class="btn btn-sm btn-outline-danger" data-action="media-archive" data-id="${item.id}">Arquivar</button>
+          </div>
+        </div>
+      </article></div>`).join("") || '<div class="col-12"><div class="alert alert-light border">Nenhuma imagem cadastrada. Adicione a primeira usando uma URL HTTPS.</div></div>'}</div>`;
+}
+
+function bindMediaLibrary(scope) {
+  const form = scope.querySelector("#sw-media-form");
+  const previewInput = form?.elements.image_url;
+  previewInput?.addEventListener("input", () => {
+    const img = scope.querySelector("#sw-media-preview");
+    const value = previewInput.value.trim();
+    if (value.startsWith("https://")) { img.src = value; img.classList.remove("d-none"); }
+    else { img.removeAttribute("src"); img.classList.add("d-none"); }
+  });
+  form?.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const submit = form.querySelector('button[type="submit"]');
+    const error = scope.querySelector("#sw-media-error");
+    const data = new FormData(form);
+    submit.disabled = true; error.textContent = "";
+    try {
+      await api.adminCreateMediaAsset({
+        name: String(data.get("name") || "").trim(),
+        image_url: String(data.get("image_url") || "").trim(),
+        category: String(data.get("category") || "geral"),
+        license: String(data.get("license") || "").trim() || null,
+        tags: String(data.get("tags") || "").split(",").map(x => x.trim()).filter(Boolean),
+        alt_text: String(data.get("alt_text") || "").trim() || null,
+        is_default: data.get("is_default") === "on",
+      });
+      toast("Imagem cadastrada na biblioteca.", "success");
+      await refreshCurrentView();
+    } catch (err) { error.textContent = err.message; submit.disabled = false; }
+  });
+  scope.querySelector("#sw-media-search-form")?.addEventListener("submit", async e => {
+    e.preventDefault();
+    await refreshCurrentView();
+  });
 }
 
 async function viewAdminOverview() {
@@ -1051,6 +1132,7 @@ const VIEWS = {
     drivers: viewAdminDrivers,
     deliveries: viewAdminDeliveries,
     orders: viewAdminOrders,
+    media: viewAdminMediaAssets,
   },
 };
 
@@ -1070,6 +1152,7 @@ async function renderCurrentView() {
 
     bindActionButtons(body);
     bindCustomActions(body);
+    bindMediaLibrary(body);
 
     body
       .querySelector("#sw-provider-form")
