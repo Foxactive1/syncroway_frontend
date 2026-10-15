@@ -23,11 +23,6 @@ const state = {
   type: params.get("type") || "",
 };
 
-// Render a small first batch to keep the initial DOM and layout work lightweight.
-const CATALOG_PAGE_SIZE = 8;
-let catalogItems = [];
-let visibleItemCount = CATALOG_PAGE_SIZE;
-
 renderHeader("home");
 renderFooter();
 
@@ -156,37 +151,6 @@ async function loadCategories() {
 // Catálogo
 // ═══════════════════════════════════════════════════════════
 
-function renderCatalogItems() {
-  const visibleItems = catalogItems.slice(0, visibleItemCount);
-  const remaining = Math.max(0, catalogItems.length - visibleItems.length);
-  const moreButton = remaining
-    ? `<div class="col-12 text-center pt-2">
-         <button type="button" class="btn btn-outline-primary px-4" data-show-more>
-           Mostrar mais (${remaining}) <i class="bi bi-chevron-down ms-1" aria-hidden="true"></i>
-         </button>
-       </div>`
-    : "";
-
-  grid.innerHTML = visibleItems.length
-    ? visibleItems.map(itemCard).join("") + moreButton
-    : `<div class="col-12">${alertBox(
-        "Nada encontrado com esses filtros. Tente outra categoria ou busca.",
-        "warning"
-      )}</div>`;
-
-  grid.setAttribute("aria-busy", "false");
-  bindAddButtons();
-
-  const more = grid.querySelector("[data-show-more]");
-  more?.addEventListener("click", () => {
-    visibleItemCount = Math.min(
-      visibleItemCount + CATALOG_PAGE_SIZE,
-      catalogItems.length
-    );
-    renderCatalogItems();
-  });
-}
-
 async function loadCatalog() {
   grid.setAttribute("aria-busy", "true");
   grid.innerHTML = skeletonCards();
@@ -206,9 +170,16 @@ async function loadCatalog() {
         : state.type === "service"
           ? `Serviços disponíveis (${data.total})`
           : `Ofertas de hoje (${data.total})`;
-    catalogItems = Array.isArray(data.items) ? data.items : [];
-    visibleItemCount = CATALOG_PAGE_SIZE;
-    renderCatalogItems();
+    grid.setAttribute("aria-busy", "false");
+
+    grid.innerHTML = data.items.length
+      ? data.items.map(itemCard).join("")
+      : `<div class="col-12">${alertBox(
+          "Nada encontrado com esses filtros. Tente outra categoria ou busca.",
+          "warning"
+        )}</div>`;
+
+    bindAddButtons();
   } catch (error) {
     const message =
       error instanceof ApiError
