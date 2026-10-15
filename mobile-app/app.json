@@ -1,0 +1,27 @@
+{
+  "expo": {
+    "name": "SyncroWay",
+    "slug": "syncroway-mobile",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "scheme": "syncroway",
+    "splash": {
+      "backgroundColor": "#321078"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "br.com.syncroway.mobile"
+    },
+    "android": {
+      "package": "br.com.syncroway.mobile",
+      "adaptiveIcon": {
+        "backgroundColor": "#321078"
+      },
+      "edgeToEdgeEnabled": true
+    },
+    "plugins": [
+      "expo-status-bar"
+    ]
+  }
+}
