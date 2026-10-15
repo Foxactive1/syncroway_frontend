@@ -2556,3 +2556,274 @@ img {
 .sw-home .sw-header-nav .sw-navlink,.sw-home .sw-header-nav .sw-link{color:var(--sw-ink-muted)}
 .sw-home .sw-header-nav .sw-navlink:hover,.sw-home .sw-header-nav .sw-link:hover{color:var(--sw-primary)}
 .sw-home .sw-header-nav .sw-navlink.active{color:var(--sw-primary);background:var(--sw-primary-soft)}
+
+
+/* ═══════════════════════════════════════════════════════════════
+   35. HOME — REFINO RESPONSIVO MOBILE
+   Mantém a identidade atual e prepara o catálogo para receber fotos.
+   ═══════════════════════════════════════════════════════════════ */
+
+.sw-home-main {
+  padding-top: clamp(1rem, 3vw, 2rem) !important;
+}
+
+.sw-home .sw-hero {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  border-radius: clamp(18px, 3vw, 30px);
+}
+
+.sw-home .sw-hero-content {
+  min-width: 0;
+}
+
+.sw-home .sw-hero h1 {
+  text-wrap: balance;
+  letter-spacing: -0.045em;
+}
+
+.sw-home .sw-hero-copy {
+  max-width: 58ch;
+  line-height: 1.55;
+}
+
+.sw-home .sw-hero-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: .7rem;
+}
+
+.sw-home .sw-hero-actions .btn {
+  min-width: 0;
+  min-height: 48px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: .25rem;
+  white-space: normal;
+}
+
+.sw-home .sw-hero-actions .sw-hero-tertiary {
+  grid-column: 1 / -1;
+  min-height: 42px;
+}
+
+.sw-home .sw-hero-benefits {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: .6rem 1rem;
+}
+
+.sw-home .sw-home-section-head {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: .75rem;
+}
+
+.sw-home .sw-home-section-head h2 {
+  max-width: 20ch;
+  text-wrap: balance;
+  letter-spacing: -.035em;
+}
+
+.sw-home .sw-home-section-head p {
+  max-width: 44ch;
+}
+
+.sw-home .sw-catalog-link {
+  display: inline-flex;
+  align-items: center;
+  gap: .5rem;
+  font-weight: 700;
+  min-height: 40px;
+}
+
+.sw-home .sw-home-categories {
+  scrollbar-width: thin;
+  overscroll-behavior-inline: contain;
+  scroll-snap-type: x proximity;
+  -webkit-overflow-scrolling: touch;
+}
+
+.sw-home .sw-home-categories > * {
+  flex: 0 0 auto;
+  scroll-snap-align: start;
+}
+
+.sw-home .sw-home-results-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-top: .75rem;
+  margin-bottom: 1rem;
+  padding-bottom: .9rem;
+  border-bottom: 1px solid var(--sw-line);
+}
+
+.sw-home .sw-results-note {
+  max-width: 15rem;
+  text-align: right;
+  font-size: .8rem;
+  color: var(--sw-muted);
+}
+
+.sw-home #sw-grid > [class*="col-"] {
+  min-width: 0;
+}
+
+.sw-home #sw-grid .sw-card {
+  overflow: hidden;
+  border: 1px solid var(--sw-line-soft);
+  border-radius: 18px;
+  box-shadow: 0 3px 14px rgba(35, 24, 60, .045);
+  transition: box-shadow var(--sw-transition), transform var(--sw-transition);
+}
+
+.sw-home #sw-grid .sw-card:focus-within {
+  box-shadow: 0 0 0 3px var(--sw-primary-focus);
+}
+
+.sw-home #sw-grid .sw-thumb {
+  background:
+    radial-gradient(ellipse at 50% 45%, rgba(96, 56, 232, .09), transparent 65%),
+    linear-gradient(145deg, #f4f1fb, #eeebf5);
+}
+
+@media (hover: hover) {
+  .sw-home #sw-grid .sw-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 9px 24px rgba(35, 24, 60, .09);
+  }
+}
+
+@media (min-width: 992px) {
+  .sw-home .sw-home-section-head {
+    flex-direction: row;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 2rem;
+  }
+
+  .sw-home .sw-home-results-head {
+    align-items: center;
+  }
+}
+
+@media (max-width: 767.98px) {
+  .sw-home-main {
+    padding-bottom: 1.5rem !important;
+  }
+
+  .sw-home .sw-hero {
+    margin-bottom: 1.6rem !important;
+    border-radius: 22px;
+  }
+
+  .sw-home .sw-hero-content {
+    padding: clamp(1.25rem, 5vw, 1.65rem);
+  }
+
+  .sw-home .sw-hero h1 {
+    font-size: clamp(2rem, 8.1vw, 2.65rem);
+    line-height: 1.04;
+    margin-bottom: .85rem;
+  }
+
+  .sw-home .sw-hero-copy {
+    font-size: 1rem;
+    margin-bottom: 1.1rem;
+  }
+
+  .sw-home .sw-hero-eyebrow {
+    font-size: .7rem;
+    letter-spacing: .13em;
+    padding: .55rem .8rem;
+    margin-bottom: 1rem;
+  }
+
+  .sw-home .sw-hero-art {
+    display: none;
+  }
+
+  .sw-home .sw-hero-benefits {
+    gap: .55rem .9rem;
+    margin-top: 1rem;
+    font-size: .82rem;
+  }
+
+  .sw-home .sw-hero-benefits > * {
+    line-height: 1.35;
+  }
+
+  .sw-home .sw-home-section-head {
+    gap: .55rem;
+    margin-bottom: .9rem;
+  }
+
+  .sw-home .sw-home-section-head h2 {
+    font-size: clamp(1.6rem, 6.5vw, 2rem);
+    line-height: 1.12;
+    margin-top: .35rem;
+  }
+
+  .sw-home .sw-home-section-head p {
+    font-size: .95rem;
+    margin-bottom: 0;
+  }
+
+  .sw-home .sw-home-categories {
+    margin-right: -.25rem;
+    padding-bottom: .8rem !important;
+  }
+
+  .sw-home .sw-home-results-head {
+    align-items: flex-start;
+    margin-top: .35rem;
+  }
+
+  .sw-home .sw-results-note {
+    display: none;
+  }
+
+  .sw-home #sw-grid {
+    --bs-gutter-x: .75rem;
+    --bs-gutter-y: .85rem;
+  }
+
+  .sw-home #sw-grid .sw-card {
+    border-radius: 15px;
+  }
+
+  .sw-home #sw-grid .card-body {
+    padding: .8rem;
+  }
+}
+
+@media (max-width: 380px) {
+  .sw-home .sw-hero-actions {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .sw-home .sw-hero-actions .sw-hero-tertiary {
+    grid-column: auto;
+  }
+
+  .sw-home .sw-hero-actions .btn {
+    width: 100%;
+  }
+
+  .sw-home .sw-hero-benefits {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sw-home #sw-grid .sw-card {
+    transition: none;
+  }
+}
