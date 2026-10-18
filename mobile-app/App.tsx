@@ -22,6 +22,8 @@ const categories: Category[] = [
   { label: "Serviços", icon: "tools" },
 ];
 
+const normalizeText = (value: string) => value.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLocaleLowerCase("pt-BR");
+
 const money = (value?: string | number) => {
   if (value === undefined || value === null || value === "") return "Consulte";
   const amount = Number(value);
@@ -181,9 +183,9 @@ export default function App() {
     const name = (item.name || item.title || "").toLocaleLowerCase("pt-BR");
     const store = (item.store?.name || item.store_name || "").toLocaleLowerCase("pt-BR");
     const matchesQuery = !query.trim() || `${name} ${store} ${item.description || ""}`.toLocaleLowerCase("pt-BR").includes(query.trim().toLocaleLowerCase("pt-BR"));
-    const matchesCategory = category === "Tudo" || (type === "service" && category === "Serviços") || (item.category || "").toLocaleLowerCase("pt-BR").includes(category.toLocaleLowerCase("pt-BR"));
+    const matchesCategory = category === "Tudo" || (type === "service" && category === "Serviços") || normalizeText(item.category || "").includes(normalizeText(category));
     return matchesQuery && matchesCategory;
-  }), [items, query, category]);
+  }), [items, query, category, type]);
 
   const toggleFavorite = (id: string | number) => setFavorites(current =>
     current.includes(id) ? current.filter(value => value !== id) : [...current, id]);
