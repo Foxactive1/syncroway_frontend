@@ -21,20 +21,32 @@ export type CatalogItem = {
 
 async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   const token = await AsyncStorage.getItem("syncroway_token");
-  const response = await fetch(`${API_BASE_URL}${path}`, {
-    ...init,
-    headers: {
-      Accept: "application/json",
-      "Content-Type": "application/json",
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      ...init.headers,
-    },
-  });
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 12000);
+  let response: Response;
+  try {
+    response = await fetch(`${API_BASE_URL}${path}`, {
+      ...init,
+      signal: init.signal ?? controller.signal,
+      headers: {
+        Accept: "application/json",
+        ...(init.body ? { "Content-Type": "application/json" } : {}),
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        ...init.headers,
+      },
+    });
+  } catch (error) {
+    if (error instanceof Error && error.name === "AbortError") {
+      throw new Error("A API demorou mais de 12 segundos para responder. Tente novamente.");
+    }
+    throw new Error("Não foi possível conectar à API SyncroWay. Verifique sua conexão e tente novamente.");
+  } finally {
+    clearTimeout(timeout);
+  }
 
   const raw = await response.text();
   let data: any = {};
   try { data = raw ? JSON.parse(raw) : {}; } catch { data = { message: raw }; }
-
   if (!response.ok) {
     throw new Error(data?.message || data?.error || `Falha na API (${response.status})`);
   }
