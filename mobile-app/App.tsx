@@ -1,8 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { Alert } from "react-native";
 import {
-  ActivityIndicator, FlatList, Image, Pressable, RefreshControl,
+  ActivityIndicator, Alert, FlatList, Image, Pressable, RefreshControl,
   ScrollView, StatusBar, StyleSheet, Text, TextInput, View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -182,7 +181,7 @@ export default function App() {
     const name = (item.name || item.title || "").toLocaleLowerCase("pt-BR");
     const store = (item.store?.name || item.store_name || "").toLocaleLowerCase("pt-BR");
     const matchesQuery = !query.trim() || `${name} ${store} ${item.description || ""}`.toLocaleLowerCase("pt-BR").includes(query.trim().toLocaleLowerCase("pt-BR"));
-    const matchesCategory = category === "Tudo" || (item.category || "").toLocaleLowerCase("pt-BR").includes(category.toLocaleLowerCase("pt-BR"));
+    const matchesCategory = category === "Tudo" || (type === "service" && category === "Serviços") || (item.category || "").toLocaleLowerCase("pt-BR").includes(category.toLocaleLowerCase("pt-BR"));
     return matchesQuery && matchesCategory;
   }), [items, query, category]);
 
