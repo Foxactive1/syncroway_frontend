@@ -173,7 +173,7 @@ export default function App() {
 
   const showItemDetails = (item: CatalogItem) => Alert.alert(
     item.name || item.title || "Detalhes do item",
-    [item.description || "Confira as informações com a loja parceira.", `Preço: ${money(item.price)}`, `Loja: ${item.store?.name || item.store_name || "Loja parceira"}`, item.available === false ? "Disponibilidade: consulte a loja" : "Disponibilidade: sujeita à confirmação da loja"].join("\\n\\n"),
+    [item.description || "Confira as informações com a loja parceira.", `Preço: ${money(item.price)}`, `Loja: ${item.store?.name || item.store_name || "Loja parceira"}`, item.available === false ? "Disponibilidade: consulte a loja" : "Disponibilidade: sujeita à confirmação da loja"].join("\n\n"),
     [{ text: "Fechar", style: "cancel" }, { text: "Adicionar ao carrinho", onPress: () => addToCart(item) }]
   );
 
