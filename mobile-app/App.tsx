@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
-  ActivityIndicator, FlatList, Image, Pressable, RefreshControl,
+  ActivityIndicator, Alert, FlatList, Image, Pressable, RefreshControl,
   ScrollView, StatusBar, StyleSheet, Text, TextInput, View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -21,9 +22,12 @@ const categories: Category[] = [
   { label: "Serviços", icon: "tools" },
 ];
 
+const normalizeText = (value: string) => value.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLocaleLowerCase("pt-BR");
+
 const money = (value?: string | number) => {
-  const amount = Number(value ?? 0);
-  return Number.isFinite(amount)
+  if (value === undefined || value === null || value === "") return "Consulte";
+  const amount = Number(value);
+  return Number.isFinite(amount) && amount >= 0
     ? amount.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })
     : "Consulte";
 };
@@ -36,8 +40,9 @@ function BrandMark() {
   );
 }
 
-function ProductCard({ item, onFavorite, favorite }: {
+function ProductCard({ item, onFavorite, favorite, onView, onAdd }: {
   item: CatalogItem; onFavorite: (id: string | number) => void; favorite: boolean;
+  onView: (item: CatalogItem) => void; onAdd: (item: CatalogItem) => void;
 }) {
   const image = item.image_url || item.image;
   const title = item.name || item.title || "Item do SyncroWay";
@@ -63,15 +68,18 @@ function ProductCard({ item, onFavorite, favorite }: {
         <Text numberOfLines={2} style={styles.delivery}>Frete combinado com a loja</Text>
         <Text numberOfLines={2} style={styles.productName}>{title}</Text>
         <Text numberOfLines={1} style={styles.storeName}>{item.store?.name || item.store_name || "Loja parceira"}</Text>
-        <Pressable style={styles.addButton} onPress={() => {}} accessibilityLabel={`Ver ${title}`}>
-          <Text style={styles.addButtonText}>Ver produto</Text><Ionicons name="arrow-forward" size={16} color={t.white} />
+        <Pressable style={styles.addButton} onPress={() => onView(item)} accessibilityLabel={`Ver detalhes de ${title}`}>
+          <Text style={styles.addButtonText}>Ver detalhes</Text><Ionicons name="arrow-forward" size={16} color={t.white} />
+        </Pressable>
+        <Pressable onPress={() => onAdd(item)} style={{ marginTop: 8, minHeight: 36, borderRadius: 11, borderWidth: 1, borderColor: t.purpleBright, alignItems: "center", justifyContent: "center" }} accessibilityLabel={`Adicionar ${title} ao carrinho`}>
+          <Text style={{ color: t.purpleBright, fontSize: 11, fontWeight: "800" }}>Adicionar ao carrinho</Text>
         </Pressable>
       </View>
     </View>
   );
 }
 
-function Header({ query, setQuery }: { query: string; setQuery: (value: string) => void }) {
+function Header({ query, setQuery, onAccount, onNotifications }: { query: string; setQuery: (value: string) => void; onAccount: () => void; onNotifications: () => void }) {
   return (
     <View style={styles.header}>
       <View style={styles.headerTop}>
@@ -83,10 +91,10 @@ function Header({ query, setQuery }: { query: string; setQuery: (value: string) 
           </View>
         </View>
         <View style={styles.headerActions}>
-          <Pressable style={styles.headerIcon} accessibilityLabel="Notificações">
+          <Pressable style={styles.headerIcon} accessibilityLabel="Notificações" onPress={onNotifications}>
             <Ionicons name="notifications-outline" size={23} color={t.white} />
           </Pressable>
-          <Pressable style={styles.headerIcon} accessibilityLabel="Minha conta">
+          <Pressable style={styles.headerIcon} accessibilityLabel="Minha conta" onPress={onAccount}>
             <Ionicons name="person-circle-outline" size={25} color={t.white} />
           </Pressable>
         </View>
@@ -109,6 +117,8 @@ export default function App() {
   const [query, setQuery] = useState("");
   const [items, setItems] = useState<CatalogItem[]>([]);
   const [favorites, setFavorites] = useState<(string | number)[]>([]);
+  const [favoritesLoaded, setFavoritesLoaded] = useState(false);
+  const [cart, setCart] = useState<Record<string, { item: CatalogItem; quantity: number }>>({});
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [apiOnline, setApiOnline] = useState<boolean | null>(null);
@@ -133,13 +143,49 @@ export default function App() {
 
   useEffect(() => { load(); }, [load]);
 
+  useEffect(() => {
+    let active = true;
+    AsyncStorage.getItem("syncroway_favorites").then(raw => {
+      if (!active) return;
+      if (raw) {
+        try { setFavorites(JSON.parse(raw)); } catch { setFavorites([]); }
+      }
+    }).catch(() => undefined).finally(() => { if (active) setFavoritesLoaded(true); });
+    return () => { active = false; };
+  }, []);
+
+  useEffect(() => {
+    if (!favoritesLoaded) return;
+    AsyncStorage.setItem("syncroway_favorites", JSON.stringify(favorites)).catch(() => undefined);
+  }, [favorites, favoritesLoaded]);
+
+  const addToCart = useCallback((item: CatalogItem) => {
+    const key = String(item.id);
+    setCart(current => ({ ...current, [key]: { item, quantity: (current[key]?.quantity || 0) + 1 } }));
+    Alert.alert("Adicionado ao carrinho", `${item.name || item.title || "Item"} foi adicionado à sua sacola de demonstração.`);
+  }, []);
+
+  const changeCartQuantity = (id: string, delta: number) => setCart(current => {
+    const entry = current[id];
+    if (!entry) return current;
+    const quantity = entry.quantity + delta;
+    if (quantity <= 0) { const next = { ...current }; delete next[id]; return next; }
+    return { ...current, [id]: { ...entry, quantity } };
+  });
+
+  const showItemDetails = (item: CatalogItem) => Alert.alert(
+    item.name || item.title || "Detalhes do item",
+    [item.description || "Confira as informações com a loja parceira.", `Preço: ${money(item.price)}`, `Loja: ${item.store?.name || item.store_name || "Loja parceira"}`, item.available === false ? "Disponibilidade: consulte a loja" : "Disponibilidade: sujeita à confirmação da loja"].join("\n\n"),
+    [{ text: "Fechar", style: "cancel" }, { text: "Adicionar ao carrinho", onPress: () => addToCart(item) }]
+  );
+
   const filtered = useMemo(() => items.filter(item => {
     const name = (item.name || item.title || "").toLocaleLowerCase("pt-BR");
     const store = (item.store?.name || item.store_name || "").toLocaleLowerCase("pt-BR");
     const matchesQuery = !query.trim() || `${name} ${store} ${item.description || ""}`.toLocaleLowerCase("pt-BR").includes(query.trim().toLocaleLowerCase("pt-BR"));
-    const matchesCategory = category === "Tudo" || category === "Serviços" || (item.category || "").toLocaleLowerCase("pt-BR").includes(category.toLocaleLowerCase("pt-BR"));
+    const matchesCategory = category === "Tudo" || (type === "service" && category === "Serviços") || normalizeText(item.category || "").includes(normalizeText(category));
     return matchesQuery && matchesCategory;
-  }), [items, query, category]);
+  }), [items, query, category, type]);
 
   const toggleFavorite = (id: string | number) => setFavorites(current =>
     current.includes(id) ? current.filter(value => value !== id) : [...current, id]);
@@ -162,10 +208,10 @@ export default function App() {
               <Text style={styles.heroTitle}>Tudo da sua cidade,{"\n"}<Text style={styles.heroTitleAccent}>mais perto de você.</Text></Text>
               <Text style={styles.heroCopy}>Descubra produtos, encontre lojas e contrate serviços locais em um só lugar.</Text>
               <View style={styles.heroButtons}>
-                <Pressable onPress={() => { setType("product"); setTab("home"); }} style={styles.heroPrimary}>
+                <Pressable onPress={() => { setType("product"); setCategory("Tudo"); setTab("home"); }} style={styles.heroPrimary}>
                   <Ionicons name="bag-check-outline" size={18} color={t.purpleDeep} /><Text style={styles.heroPrimaryText}>Ver produtos</Text>
                 </Pressable>
-                <Pressable onPress={() => { setType("service"); setTab("home"); }} style={styles.heroSecondary}>
+                <Pressable onPress={() => { setType("service"); setCategory("Tudo"); setTab("home"); }} style={styles.heroSecondary}>
                   <MaterialCommunityIcons name="tools" size={18} color={t.white} /><Text style={styles.heroSecondaryText}>Ver serviços</Text>
                 </Pressable>
               </View>
@@ -189,14 +235,14 @@ export default function App() {
             </ScrollView>
             <View style={styles.offersHeader}>
               <View><Text style={styles.eyebrow}>SELEÇÃO PARA VOCÊ</Text><Text style={styles.offersTitle}>{type === "service" ? "Serviços em destaque" : "Ofertas para você"} <Text style={styles.offersCount}>({displayed.length})</Text></Text></View>
-              <View style={styles.liveBadge}><View style={[styles.liveDot, { backgroundColor: apiOnline ? t.green : "#D5A12B" }]} /><Text style={styles.liveText}>{apiOnline ? "Atualizado" : "Conectando"}</Text></View>
+              <View style={styles.liveBadge}><View style={[styles.liveDot, { backgroundColor: apiOnline === true ? t.green : apiOnline === false ? "#D83D67" : "#D5A12B" }]} /><Text style={styles.liveText}>{apiOnline === true ? "API conectada" : apiOnline === false ? "API indisponível" : "Verificando API"}</Text></View>
             </View>
             {loading && <View style={styles.stateBox}><ActivityIndicator size="large" color={t.purpleBright} /><Text style={styles.stateText}>Carregando o marketplace...</Text></View>}
             {!loading && !!error && <View style={styles.stateBox}><Ionicons name="cloud-offline-outline" size={30} color={t.muted} /><Text style={styles.stateTitle}>Não foi possível carregar</Text><Text style={styles.stateText}>{error}</Text><Pressable style={styles.retryButton} onPress={() => load()}><Text style={styles.retryText}>Tentar novamente</Text></Pressable></View>}
             {!loading && !error && displayed.length === 0 && <View style={styles.stateBox}><MaterialCommunityIcons name="shopping-outline" size={34} color={t.muted} /><Text style={styles.stateTitle}>{tab === "favorites" ? "Seus favoritos aparecem aqui" : "Nenhum item encontrado"}</Text><Text style={styles.stateText}>Tente outra busca ou categoria. As fotos poderão ser adicionadas ao catálogo depois.</Text></View>}
           </View>
         }
-        renderItem={({ item }) => <View style={styles.productColumn}><ProductCard item={item} favorite={favorites.includes(item.id)} onFavorite={toggleFavorite} /></View>}
+        renderItem={({ item }) => <View style={styles.productColumn}><ProductCard item={item} favorite={favorites.includes(item.id)} onFavorite={toggleFavorite} onView={showItemDetails} onAdd={addToCart} /></View>}
       />
     );
   };
@@ -204,13 +250,41 @@ export default function App() {
   return (
     <SafeAreaView style={styles.safeArea} edges={["top", "left", "right"]}>
       <StatusBar barStyle="light-content" backgroundColor={t.purple} />
-      <Header query={query} setQuery={setQuery} />
-      {tab === "account" ? (
+      <Header query={query} setQuery={setQuery} onAccount={() => setTab("account")} onNotifications={() => Alert.alert("Notificações", "As notificações de pedidos serão ativadas quando o serviço estiver integrado.")} />
+      {tab === "cart" ? (
+        <ScrollView contentContainerStyle={{ padding: 18, paddingBottom: 30 }}>
+          <Text style={{ color: t.ink, fontSize: 26, fontWeight: "900", marginBottom: 6 }}>Seu carrinho</Text>
+          <Text style={{ color: t.muted, fontSize: 13, marginBottom: 18 }}>Sacola demonstrativa — sem cobrança ou pedido real.</Text>
+          {Object.keys(cart).length === 0 ? (
+            <View style={styles.stateBox}><Ionicons name="cart-outline" size={36} color={t.muted} /><Text style={styles.stateTitle}>Seu carrinho está vazio</Text><Text style={styles.stateText}>Explore os produtos e adicione itens para ver o resumo da compra.</Text><Pressable style={styles.retryButton} onPress={() => setTab("home")}><Text style={styles.retryText}>Explorar catálogo</Text></Pressable></View>
+          ) : <>
+            {Object.entries(cart).map(([id, entry]) => <View key={id} style={{ backgroundColor: t.white, borderRadius: 16, padding: 14, marginBottom: 10, borderWidth: 1, borderColor: t.line }}>
+              <Text style={{ color: t.ink, fontSize: 15, fontWeight: "800" }}>{entry.item.name || entry.item.title}</Text>
+              <Text style={{ color: t.muted, marginTop: 4 }}>{entry.item.store?.name || entry.item.store_name || "Loja parceira"}</Text>
+              <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginTop: 12 }}>
+                <Text style={{ color: t.purpleBright, fontWeight: "900" }}>{money(entry.item.price)}</Text>
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 14 }}>
+                  <Pressable onPress={() => changeCartQuantity(id, -1)} accessibilityLabel="Diminuir quantidade" style={{ paddingHorizontal: 10, paddingVertical: 5, borderRadius: 8, backgroundColor: t.purpleSoft }}><Text style={{ color: t.purpleBright, fontWeight: "900" }}>−</Text></Pressable>
+                  <Text style={{ color: t.ink, fontWeight: "800" }}>{entry.quantity}</Text>
+                  <Pressable onPress={() => changeCartQuantity(id, 1)} accessibilityLabel="Aumentar quantidade" style={{ paddingHorizontal: 10, paddingVertical: 5, borderRadius: 8, backgroundColor: t.purpleSoft }}><Text style={{ color: t.purpleBright, fontWeight: "900" }}>+</Text></Pressable>
+                </View>
+              </View>
+            </View>)}
+            <View style={{ backgroundColor: t.purple, borderRadius: 18, padding: 18, marginTop: 6 }}>
+              <Text style={{ color: "#D8CFF0", fontSize: 12 }}>Subtotal estimado</Text>
+              <Text style={{ color: t.white, fontSize: 27, fontWeight: "900", marginTop: 4 }}>{money(Object.values(cart).reduce((sum, entry) => sum + (Number(entry.item.price) || 0) * entry.quantity, 0))}</Text>
+              <Text style={{ color: "#D8CFF0", fontSize: 11, marginTop: 8 }}>Frete e disponibilidade precisam ser confirmados com cada loja. Checkout real ainda não está habilitado.</Text>
+              <Pressable onPress={() => Alert.alert("Demonstração", "O checkout será habilitado após validar pedidos, estoque, frete e pagamentos no backend.")} style={{ backgroundColor: t.lime, borderRadius: 99, padding: 14, alignItems: "center", marginTop: 16 }}><Text style={{ color: t.purpleDeep, fontWeight: "900" }}>Continuar (demonstração)</Text></Pressable>
+            </View>
+            <Pressable onPress={() => setCart({})} style={{ padding: 12, alignItems: "center" }}><Text style={{ color: "#B42346", fontWeight: "800" }}>Limpar carrinho</Text></Pressable>
+          </>}
+        </ScrollView>
+      ) : tab === "account" ? (
         <View style={styles.accountScreen}>
           <View style={styles.accountMark}><Ionicons name="person-outline" size={35} color={t.purpleBright} /></View>
           <Text style={styles.accountTitle}>Sua conta SyncroWay</Text>
           <Text style={styles.accountCopy}>Entre para acompanhar pedidos, salvar endereços e gerenciar seus favoritos.</Text>
-          <Pressable style={styles.accountButton}><Text style={styles.accountButtonText}>Entrar ou criar conta</Text></Pressable>
+          <Pressable style={styles.accountButton} onPress={() => Alert.alert("Conta SyncroWay", "O login real depende da integração do fluxo de autenticação com a API. Nesta apresentação, nenhuma credencial será solicitada.")}><Text style={styles.accountButtonText}>Entrar ou criar conta</Text></Pressable>
           <Text style={styles.accountNote}>A autenticação será conectada ao backend na próxima etapa.</Text>
         </View>
       ) : renderCatalog()}
@@ -218,7 +292,7 @@ export default function App() {
         {([
           { key: "home", label: "Início", icon: "home-outline", active: "home" },
           { key: "favorites", label: "Favoritos", icon: "heart-outline", active: "heart" },
-          { key: "cart", label: "Carrinho", icon: "cart-outline", active: "cart" },
+          { key: "cart", label: `Carrinho${Object.values(cart).reduce((sum, entry) => sum + entry.quantity, 0) ? ` (${Object.values(cart).reduce((sum, entry) => sum + entry.quantity, 0)})` : ""}`, icon: "cart-outline", active: "cart" },
           { key: "account", label: "Conta", icon: "person-outline", active: "person" },
         ] as const).map(item => {
           const active = tab === item.key;
