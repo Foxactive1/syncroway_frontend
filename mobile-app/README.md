@@ -1,50 +1,50 @@
-# SyncroWay Mobile
+# SyncroWay Mobile — demonstração para parceiros
 
-Aplicativo Android/iOS com React Native + Expo, usando a identidade roxo + verde-limão do SyncroWay.
+Aplicativo Android/iOS em React Native + Expo, com identidade visual roxa e verde-limão.
 
-## Requisitos
+## O que funciona nesta versão
+- Catálogo público integrado às rotas `GET /api/products` e `GET /api/services` do backend SyncroWay.
+- Busca local por nome, loja e descrição; filtro de categorias.
+- Favoritos persistidos no dispositivo com AsyncStorage.
+- Tela de detalhes do item e carrinho demonstrativo com quantidades e subtotal estimado.
+- Indicadores de carregamento, conexão, falhas e tentativa novamente.
+- Navegação entre Início, Favoritos, Carrinho e Conta.
 
-- Node.js LTS
-- npm
-- Expo Go no Android/iPhone para testar rapidamente
+## Limites importantes para a apresentação
+O carrinho é local e serve apenas para demonstrar a experiência. **Não cria pedidos, não calcula frete, não reserva estoque e não processa pagamentos.** Login, notificações reais e acompanhamento de pedidos dependem da integração dos respectivos fluxos no backend. Não apresentar estas funções como operacionais.
 
-## Executar
-
-Entre nesta pasta e rode:
+## Executar localmente
+Requisitos: Node.js LTS e npm.
 
 ```bash
+cd mobile-app
 npm install
 npx expo start
 ```
 
-Escaneie o QR Code com o Expo Go. Para iniciar no emulador Android, use `npm run android`; no macOS com Xcode, use `npm run ios`.
+Abra o projeto pelo Expo Go ou use `npm run android` com o ambiente Android configurado.
 
-## API
-
-Por padrão, o app usa `https://syncroway-backend.onrender.com/api`.
-
-Para apontar para outra API, crie `.env` nesta pasta:
+## Configuração da API
+Por padrão, usa `https://syncroway-backend.onrender.com/api`. Para outro ambiente, crie `.env` nesta pasta:
 
 ```env
-EXPO_PUBLIC_API_URL=https://seu-backend.example.com/api
+EXPO_PUBLIC_API_URL=https://sua-api.example.com/api
 ```
 
-Para backend local acessado por um celular físico, use o IP LAN do computador, não `localhost`.
+O app espera um backend público com `GET /health`, `GET /products` e `GET /services`. Não inclua segredos ou chaves privadas no aplicativo.
 
-**Importante:** o cliente tenta rotas de catálogo comuns como compatibilidade inicial. Antes de habilitar login, carrinho e checkout reais, confirme os endpoints e o formato exato da API Flask. Tokens devem ser obtidos pelo fluxo de autenticação da API; não coloque chaves privadas no aplicativo.
+## Preparar APK de teste
+1. Instale EAS CLI: `npm install -g eas-cli`.
+2. Entre na conta Expo: `eas login`.
+3. Configure o projeto com `eas build:configure`.
+4. Use um perfil de preview com distribuição interna e build Android APK.
+5. Gere com `eas build -p android --profile preview`.
 
-## Primeira versão incluída
+O build na nuvem exige conta Expo e pode exigir configuração de projeto. O APK só estará pronto após a compilação concluir com sucesso; este repositório ainda não contém um APK compilado.
 
-- Home mobile com banner, pesquisa, categorias e catálogo.
-- Alternância Produtos/Serviços.
-- Estado de carregamento, erro e tentativa novamente.
-- Abas Início, Favoritos, Carrinho e Conta (telas iniciais).
-- Cartões preparados para imagens reais via `image_url`.
-- Integração inicial de leitura da API.
-
-## Próximas etapas
-
-1. Confirmar rotas e modelos reais do backend.
-2. Implementar autenticação e persistência segura de sessão.
-3. Integrar carrinho, pedidos, pagamentos e notificações.
-4. Adicionar testes e configurar builds Android/iOS com EAS.
+## Checklist antes da reunião
+- Testar API e catálogo com a conexão que será usada na apresentação.
+- Confirmar que os produtos de demonstração têm nome, preço e imagem válidos.
+- Testar favoritos após fechar e abrir o app.
+- Testar carrinho, quantidades e subtotal.
+- Explicar claramente que checkout/pagamentos e login ainda não estão ativos.
