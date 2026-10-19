@@ -9,25 +9,69 @@
     content="width=device-width, initial-scale=1"
   >
 
-  <meta
-    name="theme-color"
-    content="#6038e8"
-  >
+  <!-- Unificado com index.html (evita a barra do navegador "piscar" na navegação) -->
+  <meta name="theme-color" content="#321078">
 
   <meta
     name="description"
     content="Consulte detalhes, preço, disponibilidade e informações de produtos e serviços anunciados no SyncroWay."
   >
   <meta name="robots" content="index,follow,max-image-preview:large">
-  <meta property="og:type" content="product">
+
+
+  <!-- ═══════════════════════════════════════════════════════
+       OPEN GRAPH — baseline genérico
+       produto.js sobrescreve com dados reais do item quando
+       roda. Social bots (WhatsApp/Facebook/LinkedIn) NÃO rodam
+       JS — por isso o fallback abaixo precisa existir.
+       ═══════════════════════════════════════════════════════ -->
+
+  <!-- "website" no baseline (correto para serviços).
+       produto.js troca para "product" quando item.type === "product". -->
+  <meta property="og:type" content="website">
   <meta property="og:site_name" content="SyncroWay">
   <meta property="og:locale" content="pt_BR">
   <meta property="og:title" content="Detalhes do item — SyncroWay">
   <meta property="og:description" content="Consulte detalhes, preço e disponibilidade no SyncroWay.">
-  <meta name="twitter:card" content="summary">
-  <link rel="canonical" href="https://syncrowayfrontend.vercel.app/produto.html">
+
+  <!-- og:image / og:url: NÃO referenciar "produto.html" como fallback —
+       é uma página shell sem conteúdo. og:url omitido de propósito
+       (redes caem para a URL compartilhada, que é o comportamento correto). -->
+  <meta property="og:image" content="https://syncrowayfrontend.vercel.app/og-default.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="SyncroWay — marketplace de produtos e serviços locais">
+
+
+  <!-- ═══════════════════════════════════════════════════════
+       TWITTER CARD
+       ═══════════════════════════════════════════════════════ -->
+
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Detalhes do item — SyncroWay">
+  <meta name="twitter:description" content="Consulte detalhes, preço e disponibilidade no SyncroWay.">
+  <meta name="twitter:image" content="https://syncrowayfrontend.vercel.app/og-default.png">
+
+
+  <!-- ═══════════════════════════════════════════════════════
+       CANONICAL
+       Omitido de propósito. Sem SSR, apontar para /produto.html
+       (shell vazio) faria todo produto canonicamente colapsar
+       nessa página em crawlers sem JS. produto.js cria o
+       <link rel="canonical"> com a URL real (?id=…&type=…).
+       ═══════════════════════════════════════════════════════ -->
+
 
   <title>Detalhes do item — SyncroWay</title>
+
+
+  <!-- ═══════════════════════════════════════════════════════
+       PERFORMANCE — abre a conexão com o CDN antes do CSS
+       ═══════════════════════════════════════════════════════ -->
+
+  <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+  <link rel="dns-prefetch" href="https://cdn.jsdelivr.net">
+
 
   <!-- Bootstrap -->
   <link
@@ -62,31 +106,61 @@
     id="main-content"
   >
 
+    <!-- Breadcrumb semântico: <ol> dentro de <nav aria-label>.
+         O ícone de chevron no primeiro item preserva a affordance
+         visual de "voltar" sem transformar a nav em back-button. -->
     <nav
-      class="mb-3 small"
+      class="mb-3"
       aria-label="Navegação estrutural"
     >
-      <a
-        href="./index.html"
-        class="text-decoration-none"
-      >
-        <i
-          class="bi bi-chevron-left"
-          aria-hidden="true"
-        ></i>
-
-        Voltar ao catálogo
-      </a>
+      <ol class="breadcrumb small mb-0">
+        <li class="breadcrumb-item">
+          <a
+            href="./index.html"
+            class="text-decoration-none"
+          >
+            <i
+              class="bi bi-chevron-left me-1"
+              aria-hidden="true"
+            ></i>
+            Catálogo
+          </a>
+        </li>
+        <li
+          class="breadcrumb-item active"
+          aria-current="page"
+          id="sw-breadcrumb-current"
+        >
+          Detalhes do item
+        </li>
+      </ol>
     </nav>
 
 
-    <!-- Conteúdo carregado por produto.js -->
+    <!-- Conteúdo carregado por produto.js.
+         aria-live permanece para não silenciar o anúncio do
+         conteúdo no carregamento inicial. Migração para o
+         #sw-status (região viva separada, abaixo) elimina
+         a verbosidade — requer ajuste em produto.js. -->
     <section
       id="sw-detail"
       aria-live="polite"
       aria-busy="true"
       aria-label="Detalhes do produto ou serviço"
     ></section>
+
+
+    <!-- Região viva dedicada a mensagens curtas ("Item carregado",
+         "Item não encontrado", erro de API). Vazia por padrão —
+         produto.js escreve aqui quando quiser anunciar sem repetir
+         o conteúdo inteiro do #sw-detail. -->
+    <div
+      id="sw-status"
+      class="sw-sr-only"
+      role="status"
+      aria-live="polite"
+      aria-atomic="true"
+    ></div>
 
   </main>
 
@@ -95,13 +169,15 @@
   <div id="sw-footer"></div>
 
 
-  <!-- Bootstrap -->
+  <!-- Bootstrap (bundle inclui Popper — necessário para modais/tooltips) -->
   <script
     src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
   ></script>
 
-  <!-- Página -->
+  <!-- Runtime config antes do módulo: window.SYNCROWAY_API precisa existir -->
   <script src="./runtime-config.js"></script>
+
+  <!-- Página -->
   <script
     type="module"
     src="./js/produto.js"
