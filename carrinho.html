@@ -9,9 +9,10 @@
     content="width=device-width, initial-scale=1"
   >
 
+  <!-- Unificado com index/produto/painel/pagamento/entrar/checkout -->
   <meta
     name="theme-color"
-    content="#6038e8"
+    content="#321078"
   >
 
   <meta
@@ -24,6 +25,9 @@
   <title>
     Carrinho — SyncroWay
   </title>
+
+  <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+  <link rel="dns-prefetch" href="https://cdn.jsdelivr.net">
 
   <link
     href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
@@ -43,13 +47,7 @@
 
 <body>
 
-  <a
-    href="#main-content"
-    class="sw-skip-link"
-  >
-    Ir para o conteúdo
-  </a>
-
+  <a href="#main-content" class="sw-skip-link">Ir para o conteúdo</a>
 
   <div id="sw-header"></div>
 
@@ -59,12 +57,32 @@
     class="container py-4"
   >
 
+    <!-- SEM aria-live aqui.
+
+         carrinho.js reescreve este container a cada mudança
+         de quantidade. Uma live region aqui anunciaria o
+         carrinho INTEIRO a cada +/- de item — verboso e
+         atrapalha o usuário que está editando outra linha.
+
+         Anúncios de "Quantidade atualizada", "Item removido"
+         vão para #sw-cart-status (região dedicada, curta).
+
+         aria-busy="true" inicial: JS seta false ao terminar. -->
     <section
       id="sw-cart"
-      aria-live="polite"
-      aria-busy="false"
+      aria-busy="true"
       aria-label="Carrinho de compras"
     ></section>
+
+
+    <!-- Região viva para mensagens curtas e não intrusivas. -->
+    <div
+      id="sw-cart-status"
+      class="sw-sr-only"
+      role="status"
+      aria-live="polite"
+      aria-atomic="true"
+    ></div>
 
   </main>
 
@@ -77,6 +95,7 @@
   ></script>
 
   <script src="./runtime-config.js"></script>
+
   <script
     type="module"
     src="./js/carrinho.js"
