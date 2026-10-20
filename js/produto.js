@@ -2,16 +2,17 @@
    SyncroWay — produto.js
    Detalhe de produto ou serviço + ações de compra/agendamento.
 
-   Correções em relação à versão anterior:
-   • Busca direta (api.product/api.service) com fallback para catálogo
+   Histórico de correções:
+   • Busca direta (api.product/api.service) com fallback robusto
+     para o catálogo em 404 — vide fetchItem()
    • host.aria-busy=true no início; false em TODOS os caminhos
-   • <input type="number"> sanitizado em input+change (não só change)
-   • Preço de serviço: "Sob orçamento" (on_quote) e "A combinar" (hourly sem rate)
+   • <input type="number"> sanitizado em input+change+blur
+   • Preço de serviço: "Sob orçamento" (on_quote) e "A combinar"
+     (hourly sem rate)
    • JSON-LD: seller (não brand), availability, twitter:card dinâmico
-   • Validação de URL única (isValidHttpsImage) — sem duplicar safeImageUrl
+   • Validação de URL única (isValidHttpsImage)
    • refreshCartBadge({ force: true }) após adicionar
    • Empty states com link "Voltar ao catálogo"
-   • localDate movido para o topo
    ═══════════════════════════════════════════════════════════════ */
 
 import { api, session } from "./api.js";
@@ -438,7 +439,16 @@ function updateItemMetadata(item) {
   const price = Number(item.price);
   const hasPrice = Number.isFinite(price) && price > 0;
 
-  document.querySelector("link[rel='canonical']")?.setAttribute("href", canonicalUrl);
+  // Cria <link rel="canonical"> se não existir (produto.html foi
+  // reformulado sem canonical estático para evitar shell-canônico).
+  let canonicalLink = document.querySelector("link[rel='canonical']");
+  if (!canonicalLink) {
+    canonicalLink = document.createElement("link");
+    canonicalLink.rel = "canonical";
+    document.head.appendChild(canonicalLink);
+  }
+  canonicalLink.href = canonicalUrl;
+
   document.title = `${name} — SyncroWay`;
 
   setMeta('meta[name="description"]', "content", description);
@@ -494,22 +504,31 @@ function updateItemMetadata(item) {
 // ═══════════════════════════════════════════════════════════
 
 /**
- * Busca o item. Se o backend expõe endpoint dedicado
- * (api.product / api.service), usa — evita baixar o catálogo
- * inteiro só para achar 1 registro (e resolve o falso 404
- * para itens arquivados/fora da página 1).
+ * Busca o item. Preferência: endpoint dedicado (api.product(id) /
+ * api.service(id)) — evita baixar o catálogo inteiro e resolve o
+ * falso 404 de itens fora da página 1.
  *
- * Fallback para api.catalog mantém compatibilidade com o
- * backend atual até os endpoints dedicados existirem.
+ * FALLBACK: se o backend responder 404, pode significar:
+ *   (a) endpoint dedicado não existe (backend antigo sem
+ *       /products/:id e /services/:id — o Flask devolve 404 genérico)
+ *   (b) item realmente não existe/arquivado
+ * Nos dois casos, tentamos o catálogo antes de desistir:
+ *   (a) catálogo encontra → retorna item
+ *   (b) catálogo não encontra → null → estado "não encontrado"
+ *
+ * Erros 5xx/401/0 (rede) NÃO caem no fallback — sobem para o
+ * caller, que mostra alerta. Não mascarar falha de servidor.
  */
 async function fetchItem() {
-  const dedicated =
-    type === "service"
-      ? api.service
-      : api.product;
+  const dedicated = type === "service" ? api.service : api.product;
 
   if (typeof dedicated === "function") {
-    return dedicated(id);
+    try {
+      return await dedicated(id);
+    } catch (error) {
+      if (error?.status !== 404) throw error;
+      // 404 → tenta o catálogo abaixo.
+    }
   }
 
   const data = await api.catalog({ type });
@@ -520,10 +539,11 @@ async function load() {
   if (!host) return;
 
   if (!id || Number.isNaN(id)) {
-    host.innerHTML = alertBox(
-      "Item inválido. Volte ao catálogo e escolha outro.",
-      "warning"
-    ) + backToCatalog();
+    host.innerHTML =
+      alertBox(
+        "Item inválido. Volte ao catálogo e escolha outro.",
+        "warning"
+      ) + backToCatalog();
     host.setAttribute("aria-busy", "false");
     return;
   }
@@ -539,10 +559,9 @@ async function load() {
   }
 
   if (!item) {
-    host.innerHTML = alertBox(
-      "Item não encontrado ou fora do ar.",
-      "warning"
-    ) + backToCatalog();
+    host.innerHTML =
+      alertBox("Item não encontrado ou fora do ar.", "warning") +
+      backToCatalog();
     host.setAttribute("aria-busy", "false");
     document
       .querySelector('meta[name="robots"]')
