@@ -223,7 +223,7 @@ export async function request(
 
   let response;
   try {
-    response = await fetchWithTimeout(`${API_BASE}/${path}`, {
+    response = await fetchWithTimeout(`${API_BASE}${path}`, {
       method,
       headers,
       body: body === undefined ? undefined : JSON.stringify(body),
