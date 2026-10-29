@@ -4,117 +4,323 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#321078">
-  <!-- Título e SEO -->
+
+  <!-- SEO -->
   <title>SyncroWay — Produtos, lojas e serviços locais</title>
-  <meta name="description" content="Encontre produtos, descubra lojas e serviços da sua região no SyncroWay. Compare opções, conheça negócios locais e encontre soluções para o seu dia a dia." >
+  <meta
+    name="description"
+    content="Encontre produtos, descubra lojas e serviços da sua região no SyncroWay. Compare opções, conheça negócios locais e encontre soluções para o seu dia a dia."
+  >
   <meta name="robots" content="index, follow, max-image-preview:large">
-  <!-- URL canônica -->
-  <link rel="canonical" href="https://syncrowayfrontend.vercel.app/"  >
-  <!-- Verificação do Google Search Console -->
-  <meta name="google-site-verification" content="FSvbKQdiZkj-9OzhcvMq3tE_d0XlSVPE2NV79dAoHPs">
-  <!-- Open Graph: compartilhamento em redes sociais -->
+
+  <!-- Domínio oficial -->
+  <link rel="canonical" href="https://syncroway.com.br/">
+
+  <!-- Melhora o início das conexões com o CDN -->
+  <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+
+  <!-- Google Search Console -->
+  <meta
+    name="google-site-verification"
+    content="FSvbKQdiZkj-9OzhcvMq3tE_d0XlSVPE2NV79dAoHPs"
+  >
+
+  <!-- Open Graph -->
   <meta property="og:type" content="website">
   <meta property="og:locale" content="pt_BR">
   <meta property="og:site_name" content="SyncroWay">
-  <meta property="og:title" content="SyncroWay — Produtos, lojas e serviços locais">
-  <meta property="og:description" content="Encontre produtos, descubra lojas e conecte-se com negócios locais em um só lugar.">
-  <meta property="og:url" content="https://syncrowayfrontend.vercel.app/">
-  <!-- Imagem de compartilhamento:
-       substitua pela URL pública de uma imagem real -->
-  <!--
-  <meta property="og:image" content="https://SEU-DOMINIO/imagens/syncroway-social.jpg">
-  <meta property="og:image:alt" content="SyncroWay — produtos, lojas e serviços locais">
-  -->  <!-- Twitter / X -->
-  <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="SyncroWay — Produtos, lojas e serviços locais">
-  <meta name="twitter:description" content="Descubra produtos, lojas e serviços da sua região com a SyncroWay.">
+  <meta
+    property="og:title"
+    content="SyncroWay — Produtos, lojas e serviços locais"
+  >
+  <meta
+    property="og:description"
+    content="Encontre produtos, descubra lojas e conecte-se com negócios locais em um só lugar."
+  >
+  <meta property="og:url" content="https://syncroway.com.br/">
 
-  <!-- Imagem para Twitter / X:
-       configure quando tiver uma URL pública -->
-  <!-- 
-  <meta name="twitter:image" content="https://SEU-DOMINIO/imagens/syncroway-social.jpg"
+  <!-- Configure estas propriedades quando a imagem estiver publicada -->
+  <!--
+  <meta
+    property="og:image"
+    content="https://syncroway.com.br/imagens/syncroway-social.jpg"
+  >
+  <meta
+    property="og:image:alt"
+    content="SyncroWay — produtos, lojas e serviços locais"
   >
   -->
-  <!-- Dados estruturados do site -->
+
+  <!-- Twitter / X -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta
+    name="twitter:title"
+    content="SyncroWay — Produtos, lojas e serviços locais"
+  >
+  <meta
+    name="twitter:description"
+    content="Descubra produtos, lojas e serviços da sua região com a SyncroWay."
+  >
+
+  <!-- Configure quando houver uma imagem pública de compartilhamento -->
+  <!--
+  <meta
+    name="twitter:image"
+    content="https://syncroway.com.br/imagens/syncroway-social.jpg"
+  >
+  -->
+
+  <!-- Dados estruturados -->
   <script type="application/ld+json">
   {
     "@context": "https://schema.org",
     "@type": "WebSite",
     "name": "SyncroWay",
-    "url": "https://syncrowayfrontend.vercel.app/",
+    "url": "https://syncroway.com.br/",
     "description": "Plataforma para encontrar produtos, lojas e serviços da região.",
     "inLanguage": "pt-BR"
   }
   </script>
 
   <!-- Bootstrap CSS -->
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link
+    href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+    rel="stylesheet"
+  >
+
   <!-- Bootstrap Icons -->
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+  <link
+    href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css"
+    rel="stylesheet"
+  >
 
   <!-- CSS personalizado -->
   <link href="./css/app.css" rel="stylesheet">
 </head>
 
 <body class="sw-home">
-  <a href="#main-content" class="sw-skip-link">Ir para o conteúdo</a>
+  <a href="#main-content" class="sw-skip-link">
+    Ir para o conteúdo
+  </a>
+
   <div id="sw-header"></div>
+
   <main id="main-content" class="sw-home-main container py-4 py-lg-5">
-    <section class="sw-hero mb-4 mb-lg-5" aria-labelledby="sw-hero-title">
+
+    <!-- Hero -->
+    <section
+      class="sw-hero mb-4 mb-lg-5"
+      aria-labelledby="sw-hero-title"
+    >
       <div class="sw-hero-content">
-        <span class="sw-hero-eyebrow"><i class="bi bi-stars" aria-hidden="true"></i> SEU MARKETPLACE LOCAL</span>
-        <h1 id="sw-hero-title">Tudo da sua cidade,<br><span>mais perto de você.</span></h1>
-        <p class="sw-hero-copy">Descubra produtos, encontre lojas e contrate serviços locais em um só lugar. Mais praticidade para o seu dia a dia.</p>
-        <div class="sw-hero-actions" role="group" aria-label="Explorar marketplace por tipo">
-          <button class="btn sw-hero-primary" type="button" aria-pressed="false" data-type="product"><i class="bi bi-bag-check me-2" aria-hidden="true"></i>Ver produtos</button>
-          <button class="btn sw-hero-secondary" type="button" aria-pressed="false" data-type="service"><i class="bi bi-tools me-2" aria-hidden="true"></i>Ver serviços</button>
-          <button class="btn sw-hero-tertiary" type="button" aria-pressed="false" data-type=""><i class="bi bi-grid me-2" aria-hidden="true"></i>Ver tudo</button>
+        <span class="sw-hero-eyebrow">
+          <i class="bi bi-stars" aria-hidden="true"></i>
+          SEU MARKETPLACE LOCAL
+        </span>
+
+        <h1 id="sw-hero-title">
+          Tudo da sua cidade,<br>
+          <span>mais perto de você.</span>
+        </h1>
+
+        <p class="sw-hero-copy">
+          Descubra produtos, encontre lojas e contrate serviços locais em
+          um só lugar. Mais praticidade para o seu dia a dia.
+        </p>
+
+        <div
+          class="sw-hero-actions"
+          role="group"
+          aria-label="Explorar marketplace por tipo"
+        >
+          <button
+            class="btn sw-hero-primary"
+            type="button"
+            aria-pressed="false"
+            data-type="product"
+          >
+            <i class="bi bi-bag-check me-2" aria-hidden="true"></i>
+            Ver produtos
+          </button>
+
+          <button
+            class="btn sw-hero-secondary"
+            type="button"
+            aria-pressed="false"
+            data-type="service"
+          >
+            <i class="bi bi-tools me-2" aria-hidden="true"></i>
+            Ver serviços
+          </button>
+
+          <button
+            class="btn sw-hero-tertiary"
+            type="button"
+            aria-pressed="false"
+            data-type=""
+          >
+            <i class="bi bi-grid me-2" aria-hidden="true"></i>
+            Ver tudo
+          </button>
         </div>
-        <div class="sw-hero-benefits" aria-label="Características do SyncroWay">
-          <span><i class="bi bi-shop-window" aria-hidden="true"></i> Lojas da região</span>
-          <span><i class="bi bi-truck" aria-hidden="true"></i> Entrega combinada</span>
-          <span><i class="bi bi-calendar2-check" aria-hidden="true"></i> Serviços agendáveis</span>
+
+        <div
+          class="sw-hero-benefits"
+          aria-label="Características do SyncroWay"
+        >
+          <span>
+            <i class="bi bi-shop-window" aria-hidden="true"></i>
+            Lojas da região
+          </span>
+
+          <span>
+            <i class="bi bi-truck" aria-hidden="true"></i>
+            Entrega combinada
+          </span>
+
+          <span>
+            <i class="bi bi-calendar2-check" aria-hidden="true"></i>
+            Serviços agendáveis
+          </span>
         </div>
       </div>
+
+      <!-- Ilustração decorativa do hero -->
       <div class="sw-hero-art" aria-hidden="true">
         <div class="sw-hero-orbit sw-hero-orbit-one"></div>
         <div class="sw-hero-orbit sw-hero-orbit-two"></div>
+
         <div class="sw-hero-shopping-card">
-          <div class="sw-art-top"><span class="sw-art-dot"></span><span class="sw-art-dot"></span><span class="sw-art-dot"></span><span class="sw-art-label">SYNCROWAY</span></div>
-          <div class="sw-art-search"><i class="bi bi-search"></i> O que você procura?</div>
-          <div class="sw-art-categories">
-            <span><i class="bi bi-basket2-fill"></i><small>Mercado</small></span>
-            <span><i class="bi bi-cup-hot-fill"></i><small>Alimentação</small></span>
-            <span><i class="bi bi-heart-pulse-fill"></i><small>Pet & cuidado</small></span>
-            <span><i class="bi bi-tools"></i><small>Serviços</small></span>
+          <div class="sw-art-top">
+            <span class="sw-art-dot"></span>
+            <span class="sw-art-dot"></span>
+            <span class="sw-art-dot"></span>
+            <span class="sw-art-label">SYNCROWAY</span>
           </div>
-          <div class="sw-art-offer"><span><i class="bi bi-lightning-charge-fill"></i> Seu próximo favorito</span><i class="bi bi-arrow-up-right-circle-fill"></i></div>
+
+          <div class="sw-art-search">
+            <i class="bi bi-search"></i>
+            O que você procura?
+          </div>
+
+          <div class="sw-art-categories">
+            <span>
+              <i class="bi bi-basket2-fill"></i>
+              <small>Mercado</small>
+            </span>
+
+            <span>
+              <i class="bi bi-cup-hot-fill"></i>
+              <small>Alimentação</small>
+            </span>
+
+            <span>
+              <i class="bi bi-heart-pulse-fill"></i>
+              <small>Pet &amp; cuidado</small>
+            </span>
+
+            <span>
+              <i class="bi bi-tools"></i>
+              <small>Serviços</small>
+            </span>
+          </div>
+
+          <div class="sw-art-offer">
+            <span>
+              <i class="bi bi-lightning-charge-fill"></i>
+              Seu próximo favorito
+            </span>
+            <i class="bi bi-arrow-up-right-circle-fill"></i>
+          </div>
         </div>
-        <div class="sw-hero-float sw-hero-float-top"><i class="bi bi-bag-heart-fill"></i><span><strong>Compre local</strong><small>Descubra novas lojas</small></span></div>
-        <div class="sw-hero-float sw-hero-float-bottom"><i class="bi bi-geo-alt-fill"></i><span><strong>Perto de você</strong><small>Produtos e serviços</small></span></div>
+
+        <div class="sw-hero-float sw-hero-float-top">
+          <i class="bi bi-bag-heart-fill"></i>
+          <span>
+            <strong>Compre local</strong>
+            <small>Descubra novas lojas</small>
+          </span>
+        </div>
+
+        <div class="sw-hero-float sw-hero-float-bottom">
+          <i class="bi bi-geo-alt-fill"></i>
+          <span>
+            <strong>Perto de você</strong>
+            <small>Produtos e serviços</small>
+          </span>
+        </div>
       </div>
+
       <div class="sw-hero-glow" aria-hidden="true"></div>
     </section>
+
+    <!-- Catálogo -->
     <section class="sw-home-catalog" aria-labelledby="sw-heading">
       <div class="sw-home-section-head">
         <div>
-          <span class="sw-section-eyebrow">EXPLORE O MARKETPLACE</span>
-          <h2>Encontre o que você <span>precisa</span></h2>
-          <p>Escolha uma categoria ou veja as oportunidades disponíveis.</p>
+          <span class="sw-section-eyebrow">
+            EXPLORE O MARKETPLACE
+          </span>
+
+          <h2>
+            Encontre o que você <span>precisa</span>
+          </h2>
+
+          <p>
+            Escolha uma categoria ou veja as oportunidades disponíveis.
+          </p>
         </div>
-        <a class="sw-catalog-link" href="#sw-grid">Explorar catálogo <i class="bi bi-arrow-down-right" aria-hidden="true"></i></a>
+
+        <a class="sw-catalog-link" href="#sw-grid">
+          Explorar catálogo
+          <i class="bi bi-arrow-down-right" aria-hidden="true"></i>
+        </a>
       </div>
-      <div id="sw-categories" class="sw-home-categories d-flex gap-2 overflow-auto pb-3" role="group" aria-label="Filtrar por categoria"></div>
+
+      <div
+        id="sw-categories"
+        class="sw-home-categories d-flex gap-2 overflow-auto pb-3"
+        role="group"
+        aria-label="Filtrar por categoria"
+      ></div>
+
       <div class="sw-home-results-head">
-        <div><span class="sw-section-eyebrow">SELEÇÃO PARA VOCÊ</span><h2 id="sw-heading" class="h4 fw-bold my-1">Ofertas de hoje</h2></div>
-        <span class="sw-results-note"><i class="bi bi-arrow-repeat" aria-hidden="true"></i> Catálogo atualizado pela plataforma</span>
+        <div>
+          <span class="sw-section-eyebrow">
+            SELEÇÃO PARA VOCÊ
+          </span>
+
+          <h2 id="sw-heading" class="h4 fw-bold my-1">
+            Ofertas de hoje
+          </h2>
+        </div>
+
+        <span class="sw-results-note">
+          <i class="bi bi-arrow-repeat" aria-hidden="true"></i>
+          Catálogo atualizado pela plataforma
+        </span>
       </div>
-      <div id="sw-grid" class="row g-3 g-lg-4" aria-live="polite" aria-busy="false"></div>
+
+      <div
+        id="sw-grid"
+        class="row g-3 g-lg-4"
+        aria-live="polite"
+        aria-busy="false"
+      ></div>
     </section>
   </main>
+
   <div id="sw-footer"></div>
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+  <!-- Mantido para possíveis componentes Bootstrap usados no cabeçalho -->
+  <script
+    src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
+  ></script>
+
+  <!-- Configuração de ambiente gerada no build -->
   <script src="./runtime-config.js"></script>
+
+  <!-- Lógica da página inicial -->
   <script type="module" src="./js/home.js"></script>
 </body>
 </html>
