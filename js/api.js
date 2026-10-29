@@ -159,7 +159,7 @@ async function refreshSession() {
 
     let response;
     try {
-      response = await fetchWithTimeout(`${API_BASE}/auth/refresh`, {
+      response = await fetchWithTimeout(`${API_BASE}/api/auth/refresh`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
