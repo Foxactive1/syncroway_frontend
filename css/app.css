@@ -778,21 +778,17 @@ small,
    09. CARDS
    ═══════════════════════════════════════════════════════════════ */
 
+/* 1. Garante que o card respeite estritamente a largura da coluna do Bootstrap */
 .sw-card {
+  width: 100%;
+  max-width: 100%;
   overflow: hidden;
   height: 100%;
-
   border: 1px solid var(--sw-line);
   border-radius: var(--sw-r-md);
-
   background: var(--sw-surface);
-
   box-shadow: var(--sw-shadow-xs);
-
-  transition:
-    transform var(--sw-transition),
-    box-shadow var(--sw-transition),
-    border-color var(--sw-transition);
+  transition: transform var(--sw-transition), box-shadow var(--sw-transition), border-color var(--sw-transition);
 }
 
 
@@ -817,22 +813,20 @@ small,
    10. IMAGENS
    ═══════════════════════════════════════════════════════════════ */
 
+/* 2. Controle de proporção das imagens (Padrão Mobile) */
 .sw-thumb,
 .sw-thumb-img,
 .sw-thumb-empty {
   width: 100%;
-  aspect-ratio: 1 / 1;
-
+  aspect-ratio: 1 / 1; /* Quadrado no mobile é ideal para o grid de 2 colunas */
   border-radius: var(--sw-r-md) var(--sw-r-md) 0 0;
-
   background: var(--sw-surface);
 }
 
 
 .sw-thumb-img {
-  object-fit: contain;
-  padding: 0.25rem;
-
+  object-fit: cover; /* Evita distorção da imagem e preenche o espaço de forma elegante */
+  padding: 0; /* Remove padding interno que aumentava o tamanho visual */
   transition: transform var(--sw-duration-slow) var(--sw-ease);
 }
 
@@ -2792,19 +2786,16 @@ textarea.form-control {
 /* ─── BREAKPOINTS DA HOME ───────────────────────────── */
 
 /* Desktop médio */
+/* 3. Correção para Notebook/Desktop: evita cards muito altos */
 @media (min-width: 992px) {
-  .sw-home .sw-header-top > .container {
-    min-height: 78px;
+  .sw-thumb,
+  .sw-thumb-img,
+  .sw-thumb-empty {
+    aspect-ratio: 16 / 9; /* Proporção retangular, muito mais equilibrada em telas largas */
   }
-
-  .sw-home .sw-home-section-head {
-    flex-direction: row;
-    align-items: flex-end;
-    gap: 2rem;
-  }
-
-  .sw-home .sw-home-results-head {
-    align-items: center;
+  
+  .sw-home #sw-grid .sw-card {
+    border-radius: var(--sw-r-lg);
   }
 }
 
@@ -2948,6 +2939,38 @@ textarea.form-control {
   }
 }
 
+/* 4. Otimização específica para Smartphones de 6'' (até ~412px de largura) */
+@media (max-width: 412px) {
+  .sw-home #sw-grid {
+    --bs-gutter-x: 0.5rem; /* Reduz o espaçamento entre colunas para aproveitar melhor a tela */
+    --bs-gutter-y: 0.5rem;
+  }
+
+  .sw-home #sw-grid .card-body {
+    padding: 0.65rem; /* Padding interno mais compacto */
+  }
+
+  .sw-price {
+    font-size: 1rem; /* Preço proporcional ao card menor */
+    line-height: 1.2;
+  }
+
+  .sw-title-clamp {
+    font-size: 0.8rem;
+    min-height: 2.2em; /* Garante alinhamento uniforme mesmo com títulos de 2 linhas */
+  }
+
+  .btn-sm {
+    padding: 0.35rem 0.5rem;
+    font-size: 0.8rem;
+  }
+}
+/* 5. Bônus: Ajuste na página de detalhes do produto para manter a consistência visual */
+@media (min-width: 768px) {
+  .sw-detail-image {
+    aspect-ratio: 4 / 3; /* Evita que a imagem de detalhe fique gigante verticalmente no notebook */
+  }
+}
 
 /* Mobile pequeno */
 @media (max-width: 380px) {
