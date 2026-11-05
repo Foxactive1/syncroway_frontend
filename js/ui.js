@@ -515,7 +515,7 @@ function renderNavigation(active) {
 
   return `
     <nav class="sw-header-nav" aria-label="Navegação principal">
-      <div class="container d-flex gap-3 overflow-auto py-2 small">
+      <div class="container sw-nav-scroll d-flex gap-3 overflow-auto py-2 small" tabindex="0" aria-label="Links da navegação principal; deslize horizontalmente para ver todos">
         ${navItems.map((item) => renderNavItem(item, active)).join("")}
       </div>
     </nav>
