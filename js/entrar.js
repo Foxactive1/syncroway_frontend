@@ -97,12 +97,27 @@ if (session.user) {
 }
 
 // ═══════════════════════════════════════════════════════════
+// Alterna a visibilidade da senha sem alterar o valor digitado.
+document.querySelectorAll("[data-password-toggle]").forEach((toggle) => {
+  toggle.addEventListener("click", () => {
+    const input = document.getElementById(toggle.dataset.passwordToggle);
+    if (!input) return;
+    const visible = input.type === "password";
+    input.type = visible ? "text" : "password";
+    toggle.setAttribute("aria-pressed", String(visible));
+    toggle.setAttribute("aria-label", visible ? "Ocultar senha" : "Mostrar senha");
+    const icon = toggle.querySelector("i");
+    if (icon) icon.className = visible ? "bi bi-eye-slash" : "bi bi-eye";
+  });
+});
+
 // Login
 // ═══════════════════════════════════════════════════════════
 
 document.getElementById("sw-login")?.addEventListener("submit", async (event) => {
   event.preventDefault();
   const form = event.currentTarget;
+  if (!form.reportValidity()) return;
   const button = form.querySelector('button[type="submit"]');
   const restore = setButtonLoading(button, "Entrando...");
 

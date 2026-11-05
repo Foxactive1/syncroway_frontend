@@ -92,7 +92,6 @@
           <form
             id="sw-login"
             class="row g-3"
-            novalidate
           >
 
             <div class="col-12">
@@ -126,14 +125,25 @@
                 Senha
               </label>
 
-              <input
-                id="sw-login-password"
-                name="password"
-                type="password"
-                class="form-control"
-                autocomplete="current-password"
-                required
-              >
+              <div class="input-group">
+                <input
+                  id="sw-login-password"
+                  name="password"
+                  type="password"
+                  class="form-control"
+                  autocomplete="current-password"
+                  required
+                >
+                <button
+                  class="btn btn-outline-secondary"
+                  type="button"
+                  data-password-toggle="sw-login-password"
+                  aria-label="Mostrar senha"
+                  aria-pressed="false"
+                >
+                  <i class="bi bi-eye" aria-hidden="true"></i>
+                </button>
+              </div>
 
             </div>
 
