@@ -1,21 +1,8 @@
-
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-
-  <url>
-    <loc>https://syncrowayfrontend.vercel.app/</loc>
-  </url>
-
-  <url>
-    <loc>https://syncrowayfrontend.vercel.app/categorias</loc>
-  </url>
-
-  <url>
-    <loc>https://syncrowayfrontend.vercel.app/lojas</loc>
-  </url>
-
-  <url>
-    <loc>https://syncrowayfrontend.vercel.app/servicos</loc>
-  </url>
-
+  <url><loc>https://www.syncroway.com.br/</loc></url>
+  <url><loc>https://www.syncroway.com.br/categorias</loc></url>
+  <url><loc>https://www.syncroway.com.br/lojas</loc></url>
+  <url><loc>https://www.syncroway.com.br/servicos</loc></url>
+  <url><loc>https://www.syncroway.com.br/produto</loc></url>
 </urlset>
