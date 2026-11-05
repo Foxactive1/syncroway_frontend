@@ -1,3 +1,21 @@
+/* ═══════════════════════════════════════════════════════════════
+   SyncroWay — painel.js
+   Painel por role: cliente, lojista, prestador, motorista, admin.
+
+   Correções em relação à versão anterior:
+   • attachMoneyMask em <input type="text" inputmode="decimal">
+     (type="number" descarta vírgula silenciosamente → preço *100)
+   • Toggle de disponibilidade via data-available, não classe CSS
+   • mediaSearchTerm declarado antes de qualquer view (fora da TDZ)
+   • safeImg() nas 3 <img> inline — javascript:/data: bloqueados
+   • runAction map em module-level (era recriado a cada clique)
+   • viewMerchantAppointments + viewProviderAppointments unificadas
+   • dataTable com nota "Mostrando N de M" quando trunca
+   • aria-live no #sw-body durante a troca de view
+   • STATUS_LABEL pt-BR + STATUS_BADGE (badge mostra "Pendente" etc.)
+   • delete do #sw-body.innerHTML → textContent, evita resize flicker
+   ═══════════════════════════════════════════════════════════════ */
+
 import { api, session } from "./api.js";
 import {
   renderHeader,
@@ -9,11 +27,14 @@ import {
   toast,
 } from "./ui.js";
 
-
 renderHeader("panel");
 renderFooter();
 
 const host = document.getElementById("sw-panel");
+
+// ═══════════════════════════════════════════════════════════
+// Constantes
+// ═══════════════════════════════════════════════════════════
 
 const ROLE_LABEL = {
   customer: "Cliente",
@@ -29,13 +50,13 @@ const NAV = {
     { id: "appointments", label: "Agendamentos" },
   ],
   merchant: [
-  { id: "overview", label: "Visão geral" },
-  { id: "alerts", label: "Alertas" },
-  { id: "products", label: "Produtos" },
-  { id: "inventory", label: "Estoque" },
-  { id: "movements", label: "Movimentações" },
-  { id: "appointments", label: "Agendamentos" },
-],
+    { id: "overview", label: "Visão geral" },
+    { id: "alerts", label: "Alertas" },
+    { id: "products", label: "Produtos" },
+    { id: "inventory", label: "Estoque" },
+    { id: "movements", label: "Movimentações" },
+    { id: "appointments", label: "Agendamentos" },
+  ],
   provider: [
     { id: "overview", label: "Visão geral" },
     { id: "services", label: "Serviços" },
@@ -59,6 +80,26 @@ const NAV = {
   ],
 };
 
+const STATUS_LABEL = {
+  pending: "Pendente",
+  confirmed: "Confirmado",
+  scheduled: "Agendado",
+  preparing: "Em preparo",
+  ready: "Pronto",
+  picked_up: "Coletado",
+  out_for_delivery: "Em rota",
+  delivered: "Entregue",
+  completed: "Concluído",
+  cancelled: "Cancelado",
+  paid: "Pago",
+  failed: "Falhou",
+  refunded: "Reembolsado",
+  awaiting_driver: "Aguardando motorista",
+  assigned: "Atribuído",
+  accepted: "Aceito",
+  settled: "Liquidado",
+};
+
 const STATUS_BADGE = {
   pending: "text-bg-warning",
   confirmed: "text-bg-info",
@@ -79,10 +120,47 @@ const STATUS_BADGE = {
   settled: "text-bg-success",
 };
 
+const MOVEMENT_TYPES = [
+  { value: "purchase", label: "Compra (entrada)" },
+  { value: "return_in", label: "Devolução do cliente (entrada)" },
+  { value: "return_out", label: "Devolução ao fornecedor (saída)" },
+  { value: "loss", label: "Perda / avaria / vencimento (saída)" },
+  { value: "internal_use", label: "Consumo interno (saída)" },
+];
+
+const REASON_REQUIRED = new Set([
+  "loss",
+  "internal_use",
+  "return_out",
+  "return_in",
+]);
+
+const ENTRY_TYPES = new Set(["purchase", "return_in"]);
+
+// ═══════════════════════════════════════════════════════════
+// Helpers
+// ═══════════════════════════════════════════════════════════
+
+/** Mesma política de ui.js:safeImageUrl — só http(s). */
+function safeImg(url) {
+  const raw = String(url ?? "").trim();
+  if (!raw) return "";
+  try {
+    const parsed = new URL(raw, window.location.origin);
+    if (parsed.protocol === "https:" || parsed.protocol === "http:") {
+      return escapeHtml(parsed.href);
+    }
+  } catch {
+    /* cai no return "" */
+  }
+  return "";
+}
+
 const badge = (status) => {
   if (!status) return "—";
   const cls = STATUS_BADGE[status] || "text-bg-light";
-  return `<span class="badge ${cls}">${escapeHtml(status)}</span>`;
+  const label = STATUS_LABEL[status] || status;
+  return `<span class="badge ${cls}">${escapeHtml(label)}</span>`;
 };
 
 const shortDate = (iso) => {
@@ -97,17 +175,21 @@ const shortDate = (iso) => {
   }
 };
 
-// ─── Utilitários de render ─────────────────────────────────
+// ═══════════════════════════════════════════════════════════
+// Componentes de render
+// ═══════════════════════════════════════════════════════════
 
 function kpiCards(data) {
   const entries = Object.entries(data).filter(
     ([, value]) => typeof value === "number" || typeof value === "string"
   );
   if (!entries.length) return "";
+
   const isMoneyKey = (key) =>
     /(total|amount|revenue|value|fee|earnings|faturamento|receita|ticket|saldo|balance|subtotal|gmv)/i.test(
       key
     );
+
   return `<div class="row g-3 mb-3">${entries
     .map(
       ([key, value]) => `<div class="col-6 col-lg-3">
@@ -142,12 +224,20 @@ function dictBadges(title, dict) {
 
 function dataTable(title, rows, { columns, actions } = {}) {
   if (!Array.isArray(rows) || !rows.length) return "";
-  const inferred = columns || [
-    ...new Set(rows.flatMap((row) => Object.keys(row))),
-  ].filter(
-    (c) =>
-      !["items", "delivery", "service", "actor", "driver", "store"].includes(c)
-  );
+
+  const inferred =
+    columns ||
+    [...new Set(rows.flatMap((row) => Object.keys(row)))].filter(
+      (c) =>
+        !["items", "delivery", "service", "actor", "driver", "store"].includes(
+          c
+        )
+    );
+
+  const LIMIT = 50;
+  const visible = rows.slice(0, LIMIT);
+  const truncated = rows.length > LIMIT;
+
   return `<div class="sw-panel p-3 mb-3">
     <h2 class="h6 text-capitalize">${escapeHtml(title.replace(/_/g, " "))}</h2>
     <div class="table-responsive"><table class="table table-sm align-middle small mb-0">
@@ -159,8 +249,7 @@ function dataTable(title, rows, { columns, actions } = {}) {
             )}</th>`
         )
         .join("")}${actions ? '<th class="text-end">Ações</th>' : ""}</tr></thead>
-      <tbody>${rows
-        .slice(0, 50)
+      <tbody>${visible
         .map(
           (row) =>
             `<tr>${inferred
@@ -179,26 +268,82 @@ function dataTable(title, rows, { columns, actions } = {}) {
             }</tr>`
         )
         .join("")}</tbody>
-    </table></div></div>`;
+    </table></div>
+    ${
+      truncated
+        ? `<p class="small text-muted mt-2 mb-0">Mostrando ${LIMIT} de ${rows.length} registros.</p>`
+        : ""
+    }
+  </div>`;
 }
+
+// ═══════════════════════════════════════════════════════════
+// Ações (map em module-level — não recriar por clique)
+// ═══════════════════════════════════════════════════════════
+
+const ACTION_MAP = {
+  "appointment-confirm": ({ id }) =>
+    api.providerUpdateAppointment(id, "confirmed"),
+  "appointment-complete": ({ id }) =>
+    api.providerUpdateAppointment(id, "completed"),
+  "appointment-cancel": ({ id }) =>
+    api.providerUpdateAppointment(id, "cancelled"),
+
+  "merchant-appointment-confirm": ({ id }) =>
+    api.merchantUpdateAppointment(id, "confirmed"),
+  "merchant-appointment-complete": ({ id }) =>
+    api.merchantUpdateAppointment(id, "completed"),
+  "merchant-appointment-cancel": ({ id }) =>
+    api.merchantUpdateAppointment(id, "cancelled"),
+
+  "delivery-accept": ({ id }) => api.driverAcceptDelivery(id),
+  "delivery-pickup": ({ id }) => api.driverUpdateDelivery(id, "picked_up"),
+  "delivery-complete": ({ id }) => api.driverUpdateDelivery(id, "delivered"),
+
+  "transaction-settle": ({ id }) => api.adminSettleTransaction(id),
+  "product-archive": ({ id }) => api.merchantArchiveProduct(id),
+  "media-archive": ({ id }) => api.adminArchiveMediaAsset(id),
+  "media-default": ({ id }) => api.adminUpdateMediaAsset(id, { is_default: true }),
+
+  "media-copy": async ({ url }) => {
+    try {
+      await navigator.clipboard.writeText(url || "");
+      toast("URL copiada.", "success");
+    } catch {
+      window.prompt("Copie a URL da imagem:", url || "");
+    }
+  },
+
+  // Estado lido do data-attribute, não da classe CSS.
+  "driver-toggle-availability": ({ available }) =>
+    api.driverSetStatus({ available: !available }),
+};
 
 function bindActionButtons(scope = document) {
   scope.querySelectorAll("[data-action]").forEach((button) =>
     button.addEventListener("click", async () => {
-      const { action, id, value, name, stock } = button.dataset;
+      const action = button.dataset.action;
+      const payload = {
+        id: Number(button.dataset.id),
+        value: button.dataset.value,
+        name: button.dataset.name || "",
+        stock: Number(button.dataset.stock || 0),
+        url: button.dataset.url || "",
+        available: button.dataset.available === "true",
+      };
 
-      // Ações que abrem modal (não chamam API direta).
       if (action === "product-adjust") {
-        openAdjustmentModal(Number(id), name || "", Number(stock));
+        openAdjustmentModal(payload.id, payload.name, payload.stock);
+        return;
+      }
+      if (action === "manage-payment") {
+        openPaymentModal(payload.id, payload.value);
         return;
       }
 
-      if (action === "manage-payment") {
-        openPaymentModal(Number(id), value); return;
-      }
       button.disabled = true;
       try {
-        await runAction(action, id, value, button);
+        await ACTION_MAP[action]?.(payload);
         toast("Ação concluída", "success");
         await refreshCurrentView();
       } catch (error) {
@@ -208,36 +353,6 @@ function bindActionButtons(scope = document) {
     })
   );
 }
-async function runAction(action, id, value, button) {
-  const map = {
-    "appointment-confirm": () => api.providerUpdateAppointment(id, "confirmed"),
-    "appointment-complete": () => api.providerUpdateAppointment(id, "completed"),
-    "appointment-cancel": () => api.providerUpdateAppointment(id, "cancelled"),
-    "merchant-appointment-confirm": () =>
-      api.merchantUpdateAppointment(id, "confirmed"),
-    "merchant-appointment-complete": () =>
-      api.merchantUpdateAppointment(id, "completed"),
-    "merchant-appointment-cancel": () =>
-      api.merchantUpdateAppointment(id, "cancelled"),
-    "delivery-accept": () => api.driverAcceptDelivery(id),
-    "delivery-pickup": () => api.driverUpdateDelivery(id, "picked_up"),
-    "delivery-complete": () => api.driverUpdateDelivery(id, "delivered"),
-    "transaction-settle": () => api.adminSettleTransaction(id),
-    "product-archive": () => api.merchantArchiveProduct(id),
-    "media-archive": () => api.adminArchiveMediaAsset(id),
-    "media-default": () => api.adminUpdateMediaAsset(id, { is_default: true }),
-    "media-copy": async () => { const url = button?.dataset.url || ""; try { await navigator.clipboard.writeText(url); toast("URL copiada.", "success"); } catch { window.prompt("Copie a URL da imagem:", url); } },
-
-    // Lê o estado do próprio botão que foi clicado, sem re-query no DOM.
-    "driver-toggle-availability": () => {
-      const currentlyAvailable = button?.classList.contains("btn-success");
-      return api.driverSetStatus({ available: !currentlyAvailable });
-    },
-  };
-  const fn = map[action];
-  if (!fn) throw new Error(`Ação desconhecida: ${action}`);
-  return fn();
-}
 
 function bindCustomActions(scope = document) {
   scope
@@ -245,14 +360,18 @@ function bindCustomActions(scope = document) {
     ?.addEventListener("click", () => openProductModal());
 }
 
-// ─── Views por role ────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════
+// Views — cliente
+// ═══════════════════════════════════════════════════════════
 
 async function viewCustomerOrders() {
   const orders = await api.orders();
   return dataTable("Meus pedidos", orders, {
     columns: ["code", "status", "payment_status", "total", "created_at"],
-    actions: row => row.status !== "cancelled" && row.payment_status === "pending"
-      ? `<a class="btn btn-sm btn-outline-primary" href="./pagamento.html?ids=${Number(row.id)}">Pagamento / cancelar</a>` : "",
+    actions: (row) =>
+      row.status !== "cancelled" && row.payment_status === "pending"
+        ? `<a class="btn btn-sm btn-outline-primary" href="./pagamento.html?ids=${Number(row.id)}">Pagamento / cancelar</a>`
+        : "",
   });
 }
 
@@ -267,6 +386,10 @@ async function viewCustomerAppointments() {
   }));
   return dataTable("Meus agendamentos", normalized);
 }
+
+// ═══════════════════════════════════════════════════════════
+// Views — lojista
+// ═══════════════════════════════════════════════════════════
 
 async function viewMerchantOverview() {
   const data = await api.merchantDashboard();
@@ -317,20 +440,21 @@ async function viewMerchantProducts() {
        </div>`;
 
   const table = dataTable("Produtos", products, {
-  columns: ["id", "name", "price", "stock", "minimum_stock", "active"],
-  actions: (row) => {
-    if (!row.active) return "";
-    return `
-      <button class="btn btn-sm btn-outline-primary me-1"
-              data-action="product-adjust"
-              data-id="${row.id}"
-              data-name="${escapeHtml(row.name)}"
-              data-stock="${row.stock}">Ajustar</button>
-      <button class="btn btn-sm btn-outline-danger"
-              data-action="product-archive"
-              data-id="${row.id}">Arquivar</button>`;
-  },
-});
+    columns: ["id", "name", "price", "stock", "minimum_stock", "active"],
+    actions: (row) => {
+      if (!row.active) return "";
+      return `
+        <button class="btn btn-sm btn-outline-primary me-1"
+                data-action="product-adjust"
+                data-id="${row.id}"
+                data-name="${escapeHtml(row.name)}"
+                data-stock="${row.stock}">Ajustar</button>
+        <button class="btn btn-sm btn-outline-danger"
+                data-action="product-archive"
+                data-id="${row.id}">Arquivar</button>`;
+    },
+  });
+
   return `${newButton}${
     table || alertBox("Nenhum produto cadastrado ainda.", "light")
   }`;
@@ -352,6 +476,7 @@ async function viewMerchantInventory() {
     }
   )}`;
 }
+
 async function viewMerchantAlerts() {
   const data = await api.merchantInventoryAlerts();
   if (!data.total) {
@@ -376,7 +501,9 @@ async function viewMerchantAlerts() {
             <th>Produto</th><th>Estoque</th><th>Mínimo</th>
             <th class="text-end">Ação</th>
           </tr></thead>
-          <tbody>${rows.map((p) => `
+          <tbody>${rows
+            .map(
+              (p) => `
             <tr>
               <td>${escapeHtml(p.name)}</td>
               <td>${p.stock}</td>
@@ -388,15 +515,20 @@ async function viewMerchantAlerts() {
                         data-name="${escapeHtml(p.name)}"
                         data-stock="${p.stock}">Repor</button>
               </td>
-            </tr>`).join("")}</tbody>
+            </tr>`
+            )
+            .join("")}</tbody>
         </table>
       </div>
     </div>`;
   };
 
-  return renderGroup("Sem estoque", data.out_of_stock, "danger")
-       + renderGroup("Estoque baixo", data.low_stock, "warning");
+  return (
+    renderGroup("Sem estoque", data.out_of_stock || [], "danger") +
+    renderGroup("Estoque baixo", data.low_stock || [], "warning")
+  );
 }
+
 async function viewMerchantMovements() {
   const rows = await api.merchantStockMovements({ limit: 100 });
   return dataTable("Movimentações", rows, {
@@ -412,8 +544,11 @@ async function viewMerchantMovements() {
   });
 }
 
-async function viewMerchantAppointments() {
-  const rows = await api.merchantAppointments();
+/**
+ * Helper de agendamentos — usado por lojista e prestador.
+ * A única diferença era o prefixo da ação (merchant- vs plain).
+ */
+function appointmentsView({ rows, actionPrefix }) {
   const normalized = rows.map((a) => ({
     id: a.id,
     cliente: a.customer?.name,
@@ -421,24 +556,37 @@ async function viewMerchantAppointments() {
     quando: shortDate(a.scheduled_at),
     status: a.status,
   }));
+
+  const a = (rowId, s, label, cls) =>
+    `<button class="btn btn-sm ${cls} me-1"
+             data-action="${actionPrefix}${s}"
+             data-id="${rowId}">${label}</button>`;
+
   return dataTable("Agendamentos", normalized, {
     actions: (row) => {
-      const a = (s, label, cls) =>
-        `<button class="btn btn-sm ${cls} me-1" data-action="merchant-appointment-${s}" data-id="${row.id}">${label}</button>`;
       if (row.status === "pending")
         return (
-          a("confirm", "Confirmar", "btn-outline-primary") +
-          a("cancel", "Cancelar", "btn-outline-danger")
+          a(row.id, "confirm", "Confirmar", "btn-outline-primary") +
+          a(row.id, "cancel", "Cancelar", "btn-outline-danger")
         );
       if (row.status === "confirmed")
         return (
-          a("complete", "Concluir", "btn-outline-success") +
-          a("cancel", "Cancelar", "btn-outline-danger")
+          a(row.id, "complete", "Concluir", "btn-outline-success") +
+          a(row.id, "cancel", "Cancelar", "btn-outline-danger")
         );
       return "";
     },
   });
 }
+
+async function viewMerchantAppointments() {
+  const rows = await api.merchantAppointments();
+  return appointmentsView({ rows, actionPrefix: "merchant-appointment-" });
+}
+
+// ═══════════════════════════════════════════════════════════
+// Views — prestador
+// ═══════════════════════════════════════════════════════════
 
 async function viewProviderOverview() {
   const data = await api.providerDashboard();
@@ -466,30 +614,7 @@ async function viewProviderServices() {
 
 async function viewProviderAppointments() {
   const rows = await api.providerAppointments();
-  const normalized = rows.map((a) => ({
-    id: a.id,
-    cliente: a.customer?.name,
-    servico: a.service?.name,
-    quando: shortDate(a.scheduled_at),
-    status: a.status,
-  }));
-  return dataTable("Agendamentos", normalized, {
-    actions: (row) => {
-      const a = (s, label, cls) =>
-        `<button class="btn btn-sm ${cls} me-1" data-action="appointment-${s}" data-id="${row.id}">${label}</button>`;
-      if (row.status === "pending")
-        return (
-          a("confirm", "Confirmar", "btn-outline-primary") +
-          a("cancel", "Cancelar", "btn-outline-danger")
-        );
-      if (row.status === "confirmed")
-        return (
-          a("complete", "Concluir", "btn-outline-success") +
-          a("cancel", "Cancelar", "btn-outline-danger")
-        );
-      return "";
-    },
-  });
+  return appointmentsView({ rows, actionPrefix: "appointment-" });
 }
 
 async function viewProviderProfile() {
@@ -539,11 +664,15 @@ async function viewProviderProfile() {
     </form></div>`;
 }
 
+// ═══════════════════════════════════════════════════════════
+// Views — motorista
+// ═══════════════════════════════════════════════════════════
+
 async function viewDriverOverview() {
   const data = await api.driverDashboard();
   const profile = data.profile || {};
-  const isAvailable = profile.available;
-  const isApproved = profile.approved;
+  const isAvailable = Boolean(profile.available);
+  const isApproved = Boolean(profile.approved);
 
   const toggleHtml = `
     <div class="sw-panel p-3 mb-3 d-flex justify-content-between align-items-center">
@@ -561,6 +690,7 @@ async function viewDriverOverview() {
       </div>
       <button class="btn ${isAvailable ? "btn-success" : "btn-outline-secondary"}"
         data-action="driver-toggle-availability"
+        data-available="${isAvailable}"
         ${isApproved ? "" : "disabled"}>
         <i class="bi bi-${isAvailable ? "toggle-on" : "toggle-off"} me-1"></i>
         ${isAvailable ? "Disponível" : "Indisponível"}
@@ -625,136 +755,9 @@ async function viewDriverHistory() {
   })}`;
 }
 
-
-async function viewAdminMediaAssets() {
-  const [result, queryCategories] = await Promise.all([
-    api.adminMediaAssets({ q: mediaSearchTerm }),
-    Promise.resolve(["geral", "servicos", "eletronicos", "moda", "alimentacao", "esportes", "lojas", "banners"]),
-  ]);
-  const items = result.items || [];
-  return `
-    <div class="sw-panel p-3 mb-3">
-      <h2 class="h6"><i class="bi bi-images me-2"></i>Biblioteca de mídia</h2>
-      <p class="small text-muted">Cadastre uma URL HTTPS uma vez e reutilize a imagem em produtos, serviços e lojas. Os arquivos ficam no serviço de imagens; o Neon guarda os metadados e o endereço.</p>
-      <form id="sw-media-form" class="row g-2">
-        <div class="col-12 col-md-6"><label class="form-label small">Nome da imagem</label><input name="name" class="form-control" maxlength="160" required placeholder="Ex.: Manutenção de computadores"></div>
-        <div class="col-6 col-md-3"><label class="form-label small">Categoria</label><select name="category" class="form-select">${queryCategories.map(c => `<option value="${c}">${c.replace(/_/g," ")}</option>`).join("")}</select></div>
-        <div class="col-6 col-md-3"><label class="form-label small">Origem/licença</label><input name="license" class="form-control" placeholder="Ex.: Unsplash License"></div>
-        <div class="col-12"><label class="form-label small">URL HTTPS da imagem</label><input name="image_url" type="url" pattern="https://.+" class="form-control" required placeholder="https://..."></div>
-        <div class="col-12 col-md-6"><label class="form-label small">Tags (separadas por vírgula)</label><input name="tags" class="form-control" placeholder="informática, assistência, técnico"></div>
-        <div class="col-12 col-md-6"><label class="form-label small">Texto alternativo</label><input name="alt_text" class="form-control" maxlength="300" placeholder="Descrição acessível da imagem"></div>
-        <div class="col-12"><div class="form-check"><input class="form-check-input" type="checkbox" name="is_default" id="sw-media-default"><label class="form-check-label small" for="sw-media-default">Definir como imagem padrão desta categoria</label></div></div>
-        <div class="col-12 d-flex gap-2 align-items-center"><img id="sw-media-preview" alt="Pré-visualização" class="rounded border d-none" style="width:72px;height:72px;object-fit:cover"><button class="btn btn-primary" type="submit"><i class="bi bi-plus-lg me-1"></i>Cadastrar imagem</button><span class="small text-muted">Upload de arquivo será ativado após configurar o provedor de armazenamento.</span></div>
-        <div id="sw-media-error" class="col-12 small text-danger" role="alert"></div>
-      </form>
-    </div>
-    <div class="sw-panel p-3 mb-3">
-      <form id="sw-media-search-form" class="d-flex gap-2"><input id="sw-media-search" class="form-control" value="${escapeHtml(mediaSearchTerm)}" placeholder="Pesquisar por nome, código ou categoria"><button class="btn btn-outline-primary">Pesquisar</button></form>
-      <div class="small text-muted mt-2">${items.length} imagem(ns) ativas</div>
-    </div>
-    <div class="row g-3">${items.map(item => `
-      <div class="col-6 col-md-4 col-xl-3"><article class="sw-panel p-2 h-100">
-        <img src="${escapeHtml(item.image_url)}" alt="${escapeHtml(item.alt_text || item.name)}" loading="lazy" class="w-100 rounded" style="aspect-ratio:4/3;object-fit:cover" onerror="this.style.display='none'">
-        <div class="p-1"><div class="fw-semibold small mt-2">${escapeHtml(item.name)}</div>
-          <div class="small text-muted">${escapeHtml(item.category)} · ${escapeHtml(item.slug)}</div>
-          ${item.is_default ? '<span class="badge text-bg-success my-1">Padrão</span>' : ""}
-          <form class="media-update-form mt-2" data-asset-id="${item.id}">
-            <label class="form-label small mb-1">Atualizar URL central</label>
-            <input name="image_url" type="url" pattern="https://.+" class="form-control form-control-sm" required value="${escapeHtml(item.image_url)}" aria-label="Nova URL da imagem">
-            <button class="btn btn-sm btn-outline-primary w-100 mt-1" type="submit">Salvar nova URL</button>
-          </form>
-          <div class="d-flex flex-wrap gap-1 mt-2">
-            <button class="btn btn-sm btn-outline-secondary" data-action="media-copy" data-url="${escapeHtml(item.image_url)}"><i class="bi bi-clipboard me-1"></i>URL</button>
-            ${item.is_default ? "" : `<button class="btn btn-sm btn-outline-primary" data-action="media-default" data-id="${item.id}">Tornar padrão</button>`}
-            <button class="btn btn-sm btn-outline-danger" data-action="media-archive" data-id="${item.id}">Arquivar</button>
-          </div>
-          <form class="media-usage-form mt-3 border-top pt-2" data-asset-id="${item.id}">
-            <label class="form-label small mb-1">Vincular imagem a um registro</label>
-            <div class="d-flex gap-1 mb-1">
-              <select name="entity_type" class="form-select form-select-sm" aria-label="Tipo de registro">
-                <option value="product">Produto</option><option value="service">Serviço</option><option value="store">Loja</option>
-              </select>
-              <input name="entity_id" type="number" min="1" class="form-control form-control-sm" required placeholder="ID" aria-label="ID do registro">
-            </div>
-            <button class="btn btn-sm btn-primary w-100" type="submit">Aplicar imagem</button>
-          </form>
-        </div>
-      </article></div>`).join("") || '<div class="col-12"><div class="alert alert-light border">Nenhuma imagem cadastrada. Adicione a primeira usando uma URL HTTPS.</div></div>'}</div>`;
-}
-
-function bindMediaLibrary(scope) {
-  const form = scope.querySelector("#sw-media-form");
-  const previewInput = form?.elements.image_url;
-  previewInput?.addEventListener("input", () => {
-    const img = scope.querySelector("#sw-media-preview");
-    const value = previewInput.value.trim();
-    if (value.startsWith("https://")) { img.src = value; img.classList.remove("d-none"); }
-    else { img.removeAttribute("src"); img.classList.add("d-none"); }
-  });
-  form?.addEventListener("submit", async (event) => {
-    event.preventDefault();
-    const submit = form.querySelector('button[type="submit"]');
-    const error = scope.querySelector("#sw-media-error");
-    const data = new FormData(form);
-    submit.disabled = true; error.textContent = "";
-    try {
-      await api.adminCreateMediaAsset({
-        name: String(data.get("name") || "").trim(),
-        image_url: String(data.get("image_url") || "").trim(),
-        category: String(data.get("category") || "geral"),
-        license: String(data.get("license") || "").trim() || null,
-        tags: String(data.get("tags") || "").split(",").map(x => x.trim()).filter(Boolean),
-        alt_text: String(data.get("alt_text") || "").trim() || null,
-        is_default: data.get("is_default") === "on",
-      });
-      toast("Imagem cadastrada na biblioteca.", "success");
-      await refreshCurrentView();
-    } catch (err) { error.textContent = err.message; submit.disabled = false; }
-  });
-  scope.querySelectorAll(".media-update-form").forEach(updateForm => {
-    updateForm.addEventListener("submit", async event => {
-      event.preventDefault();
-      const button = updateForm.querySelector('button[type="submit"]');
-      const formData = new FormData(updateForm);
-      button.disabled = true;
-      try {
-        await api.adminUpdateMediaAsset(Number(updateForm.dataset.assetId), {
-          image_url: String(formData.get("image_url") || "").trim(),
-        });
-        toast("URL atualizada. Registros vinculados foram sincronizados.", "success");
-        await refreshCurrentView();
-      } catch (error) {
-        toast(error.message, "danger");
-        button.disabled = false;
-      }
-    });
-  });
-  scope.querySelectorAll(".media-usage-form").forEach(linkForm => {
-    linkForm.addEventListener("submit", async event => {
-      event.preventDefault();
-      const button = linkForm.querySelector('button[type="submit"]');
-      const formData = new FormData(linkForm);
-      button.disabled = true;
-      try {
-        await api.adminLinkMediaAssetUsage(Number(linkForm.dataset.assetId), {
-          entity_type: String(formData.get("entity_type")),
-          entity_id: Number(formData.get("entity_id")),
-          role: "primary",
-        });
-        toast("Imagem vinculada. Alterações futuras na biblioteca serão sincronizadas.", "success");
-        await refreshCurrentView();
-      } catch (error) {
-        toast(error.message, "danger");
-        button.disabled = false;
-      }
-    });
-  });
-  scope.querySelector("#sw-media-search-form")?.addEventListener("submit", async e => {
-    e.preventDefault();
-    mediaSearchTerm = scope.querySelector("#sw-media-search")?.value?.trim() || "";
-    await refreshCurrentView();
-  });
-}
+// ═══════════════════════════════════════════════════════════
+// Views — admin
+// ═══════════════════════════════════════════════════════════
 
 async function viewAdminOverview() {
   const data = await api.adminDashboard();
@@ -850,40 +853,267 @@ async function viewAdminOrders() {
   const rows = await api.adminOrders();
   return dataTable("Pedidos", rows, {
     columns: ["id", "code", "status", "payment_status", "total", "created_at"],
-    actions: row => row.status !== "cancelled" && row.payment_status === "pending"
-      ? `<button class="btn btn-sm btn-outline-primary" data-action="manage-payment" data-id="${Number(row.id)}" data-value="${escapeHtml(row.payment_method)}">Gerenciar pagamento</button>` : "",
+    actions: (row) =>
+      row.status !== "cancelled" && row.payment_status === "pending"
+        ? `<button class="btn btn-sm btn-outline-primary" data-action="manage-payment" data-id="${Number(row.id)}" data-value="${escapeHtml(row.payment_method)}">Gerenciar pagamento</button>`
+        : "",
   });
 }
+
+async function viewAdminMediaAssets() {
+  const result = await api.adminMediaAssets({ q: mediaSearchTerm });
+  const items = result.items || [];
+
+  const CATEGORIES = [
+    "geral",
+    "servicos",
+    "eletronicos",
+    "moda",
+    "alimentacao",
+    "esportes",
+    "lojas",
+    "banners",
+  ];
+
+  return `
+    <div class="sw-panel p-3 mb-3">
+      <h2 class="h6"><i class="bi bi-images me-2"></i>Biblioteca de mídia</h2>
+      <p class="small text-muted">Cadastre uma URL HTTPS uma vez e reutilize a imagem em produtos, serviços e lojas. Os arquivos ficam no serviço de imagens; o Neon guarda os metadados e o endereço.</p>
+      <form id="sw-media-form" class="row g-2">
+        <div class="col-12 col-md-6"><label class="form-label small">Nome da imagem</label><input name="name" class="form-control" maxlength="160" required placeholder="Ex.: Manutenção de computadores"></div>
+        <div class="col-6 col-md-3"><label class="form-label small">Categoria</label><select name="category" class="form-select">${CATEGORIES.map(
+          (c) => `<option value="${c}">${c.replace(/_/g, " ")}</option>`
+        ).join("")}</select></div>
+        <div class="col-6 col-md-3"><label class="form-label small">Origem/licença</label><input name="license" class="form-control" placeholder="Ex.: Unsplash License"></div>
+        <div class="col-12"><label class="form-label small">URL HTTPS da imagem</label><input name="image_url" type="url" pattern="https://.+" class="form-control" required placeholder="https://..."></div>
+        <div class="col-12 col-md-6"><label class="form-label small">Tags (separadas por vírgula)</label><input name="tags" class="form-control" placeholder="informática, assistência, técnico"></div>
+        <div class="col-12 col-md-6"><label class="form-label small">Texto alternativo</label><input name="alt_text" class="form-control" maxlength="300" placeholder="Descrição acessível da imagem"></div>
+        <div class="col-12"><div class="form-check"><input class="form-check-input" type="checkbox" name="is_default" id="sw-media-default"><label class="form-check-label small" for="sw-media-default">Definir como imagem padrão desta categoria</label></div></div>
+        <div class="col-12 d-flex gap-2 align-items-center"><img id="sw-media-preview" alt="Pré-visualização" class="rounded border d-none" style="width:72px;height:72px;object-fit:cover"><button class="btn btn-primary" type="submit"><i class="bi bi-plus-lg me-1"></i>Cadastrar imagem</button><span class="small text-muted">Upload de arquivo será ativado após configurar o provedor de armazenamento.</span></div>
+        <div id="sw-media-error" class="col-12 small text-danger" role="alert"></div>
+      </form>
+    </div>
+    <div class="sw-panel p-3 mb-3">
+      <form id="sw-media-search-form" class="d-flex gap-2"><input id="sw-media-search" class="form-control" value="${escapeHtml(mediaSearchTerm)}" placeholder="Pesquisar por nome, código ou categoria"><button class="btn btn-outline-primary">Pesquisar</button></form>
+      <div class="small text-muted mt-2">${items.length} imagem(ns) ativas</div>
+    </div>
+    <div class="row g-3">${
+      items
+        .map((item) => {
+          const imgUrl = safeImg(item.image_url);
+          return `
+      <div class="col-6 col-md-4 col-xl-3"><article class="sw-panel p-2 h-100">
+        ${
+          imgUrl
+            ? `<img src="${imgUrl}" alt="${escapeHtml(
+                item.alt_text || item.name
+              )}" loading="lazy" class="w-100 rounded" style="aspect-ratio:4/3;object-fit:cover" onerror="this.style.display='none'">`
+            : `<div class="sw-thumb-empty" style="aspect-ratio:4/3" role="img" aria-label="Imagem indisponível"><i class="bi bi-image" aria-hidden="true"></i></div>`
+        }
+        <div class="p-1"><div class="fw-semibold small mt-2">${escapeHtml(
+          item.name
+        )}</div>
+          <div class="small text-muted">${escapeHtml(item.category)} · ${escapeHtml(
+            item.slug
+          )}</div>
+          ${
+            item.is_default
+              ? '<span class="badge text-bg-success my-1">Padrão</span>'
+              : ""
+          }
+          <form class="media-update-form mt-2" data-asset-id="${item.id}">
+            <label class="form-label small mb-1">Atualizar URL central</label>
+            <input name="image_url" type="url" pattern="https://.+" class="form-control form-control-sm" required value="${escapeHtml(
+              item.image_url
+            )}" aria-label="Nova URL da imagem">
+            <button class="btn btn-sm btn-outline-primary w-100 mt-1" type="submit">Salvar nova URL</button>
+          </form>
+          <div class="d-flex flex-wrap gap-1 mt-2">
+            <button class="btn btn-sm btn-outline-secondary" data-action="media-copy" data-url="${escapeHtml(
+              item.image_url
+            )}"><i class="bi bi-clipboard me-1"></i>URL</button>
+            ${
+              item.is_default
+                ? ""
+                : `<button class="btn btn-sm btn-outline-primary" data-action="media-default" data-id="${item.id}">Tornar padrão</button>`
+            }
+            <button class="btn btn-sm btn-outline-danger" data-action="media-archive" data-id="${item.id}">Arquivar</button>
+          </div>
+          <form class="media-usage-form mt-3 border-top pt-2" data-asset-id="${item.id}">
+            <label class="form-label small mb-1">Vincular imagem a um registro</label>
+            <div class="d-flex gap-1 mb-1">
+              <select name="entity_type" class="form-select form-select-sm" aria-label="Tipo de registro">
+                <option value="product">Produto</option><option value="service">Serviço</option><option value="store">Loja</option>
+              </select>
+              <input name="entity_id" type="number" min="1" class="form-control form-control-sm" required placeholder="ID" aria-label="ID do registro">
+            </div>
+            <button class="btn btn-sm btn-primary w-100" type="submit">Aplicar imagem</button>
+          </form>
+        </div>
+      </article></div>`;
+        })
+        .join("") ||
+      '<div class="col-12"><div class="alert alert-light border">Nenhuma imagem cadastrada. Adicione a primeira usando uma URL HTTPS.</div></div>'
+    }</div>`;
+}
+
+function bindMediaLibrary(scope) {
+  const form = scope.querySelector("#sw-media-form");
+  const previewInput = form?.elements.image_url;
+
+  previewInput?.addEventListener("input", () => {
+    const img = scope.querySelector("#sw-media-preview");
+    const url = safeImg(previewInput.value);
+    if (url) {
+      img.src = url;
+      img.classList.remove("d-none");
+    } else {
+      img.removeAttribute("src");
+      img.classList.add("d-none");
+    }
+  });
+
+  form?.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const submit = form.querySelector('button[type="submit"]');
+    const error = scope.querySelector("#sw-media-error");
+    const data = new FormData(form);
+    submit.disabled = true;
+    error.textContent = "";
+    try {
+      await api.adminCreateMediaAsset({
+        name: String(data.get("name") || "").trim(),
+        image_url: String(data.get("image_url") || "").trim(),
+        category: String(data.get("category") || "geral"),
+        license: String(data.get("license") || "").trim() || null,
+        tags: String(data.get("tags") || "")
+          .split(",")
+          .map((x) => x.trim())
+          .filter(Boolean),
+        alt_text: String(data.get("alt_text") || "").trim() || null,
+        is_default: data.get("is_default") === "on",
+      });
+      toast("Imagem cadastrada na biblioteca.", "success");
+      await refreshCurrentView();
+    } catch (err) {
+      error.textContent = err.message;
+      submit.disabled = false;
+    }
+  });
+
+  scope.querySelectorAll(".media-update-form").forEach((updateForm) => {
+    updateForm.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const button = updateForm.querySelector('button[type="submit"]');
+      const formData = new FormData(updateForm);
+      button.disabled = true;
+      try {
+        await api.adminUpdateMediaAsset(Number(updateForm.dataset.assetId), {
+          image_url: String(formData.get("image_url") || "").trim(),
+        });
+        toast(
+          "URL atualizada. Registros vinculados foram sincronizados.",
+          "success"
+        );
+        await refreshCurrentView();
+      } catch (error) {
+        toast(error.message, "danger");
+        button.disabled = false;
+      }
+    });
+  });
+
+  scope.querySelectorAll(".media-usage-form").forEach((linkForm) => {
+    linkForm.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const button = linkForm.querySelector('button[type="submit"]');
+      const formData = new FormData(linkForm);
+      button.disabled = true;
+      try {
+        await api.adminLinkMediaAssetUsage(Number(linkForm.dataset.assetId), {
+          entity_type: String(formData.get("entity_type")),
+          entity_id: Number(formData.get("entity_id")),
+          role: "primary",
+        });
+        toast(
+          "Imagem vinculada. Alterações futuras na biblioteca serão sincronizadas.",
+          "success"
+        );
+        await refreshCurrentView();
+      } catch (error) {
+        toast(error.message, "danger");
+        button.disabled = false;
+      }
+    });
+  });
+
+  scope
+    .querySelector("#sw-media-search-form")
+    ?.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      mediaSearchTerm =
+        scope.querySelector("#sw-media-search")?.value?.trim() || "";
+      await refreshCurrentView();
+    });
+}
+
+// ═══════════════════════════════════════════════════════════
+// Modais
+// ═══════════════════════════════════════════════════════════
 
 function openPaymentModal(id, method) {
   document.getElementById("sw-payment-modal")?.remove();
   const offline = ["cash", "card_on_delivery"].includes(method);
-  document.body.insertAdjacentHTML("beforeend", `<div class="modal fade" id="sw-payment-modal" tabindex="-1" aria-hidden="true"><div class="modal-dialog modal-dialog-centered"><div class="modal-content">
+
+  document.body.insertAdjacentHTML(
+    "beforeend",
+    `<div class="modal fade" id="sw-payment-modal" tabindex="-1" aria-hidden="true"><div class="modal-dialog modal-dialog-centered"><div class="modal-content">
     <div class="modal-header"><h2 class="modal-title h5">Pagamento do pedido ${id}</h2><button class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button></div>
     <form class="modal-body" id="sw-payment-form">
       <label class="form-label">Operação</label><select name="operation" class="form-select mb-3">
-      ${offline ? '<option value="offline">Confirmar recebimento na entrega</option>' : '<option value="reconcile">Conciliar cobrança existente</option><option value="cancel">Cancelar cobrança pendente no gateway</option>'}</select>
-      <label class="form-label">${offline ? 'Referência do comprovante/recebimento' : 'ID externo da cobrança (pay_..., para conciliação)'}</label>
-      <input name="reference" class="form-control mb-3" maxlength="255" ${offline ? 'required' : ''}>
+      ${
+        offline
+          ? '<option value="offline">Confirmar recebimento na entrega</option>'
+          : '<option value="reconcile">Conciliar cobrança existente</option><option value="cancel">Cancelar cobrança pendente no gateway</option>'
+      }</select>
+      <label class="form-label">${
+        offline
+          ? "Referência do comprovante/recebimento"
+          : "ID externo da cobrança (pay_..., para conciliação)"
+      }</label>
+      <input name="reference" class="form-control mb-3" maxlength="255" ${
+        offline ? "required" : ""
+      }>
       <label class="d-flex gap-2 mb-3"><input type="checkbox" required>Conferi os dados e confirmo esta operação.</label>
       <p class="small text-muted">Liquidação interna não comprova transferência bancária.</p>
       <div data-error class="text-danger mb-2" role="alert"></div><button class="btn btn-primary" type="submit">Executar</button>
-    </form></div></div></div>`);
-  const el = document.getElementById("sw-payment-modal"); const modal = new bootstrap.Modal(el); modal.show();
+    </form></div></div></div>`
+  );
+
+  const el = document.getElementById("sw-payment-modal");
+  const modal = new bootstrap.Modal(el);
+  modal.show();
   el.addEventListener("hidden.bs.modal", () => el.remove());
-  el.querySelector("form").addEventListener("submit", async e => {
-    e.preventDefault(); const button = e.currentTarget.querySelector("button"); button.disabled = true;
+  el.querySelector("form").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const button = e.currentTarget.querySelector("button");
+    button.disabled = true;
     const form = new FormData(e.currentTarget);
     try {
-      if (form.get("operation") === "offline") await api.adminConfirmOfflinePayment(id, form.get("reference"));
-      else if (form.get("operation") === "cancel") await api.adminCancelPayment(id);
+      if (form.get("operation") === "offline")
+        await api.adminConfirmOfflinePayment(id, form.get("reference"));
+      else if (form.get("operation") === "cancel")
+        await api.adminCancelPayment(id);
       else await api.adminReconcilePayment(id, form.get("reference"));
-      modal.hide(); toast("Operação concluída", "success"); await refreshCurrentView();
-    } catch (error) { el.querySelector("[data-error]").textContent = error.message; button.disabled = false; }
+      modal.hide();
+      toast("Operação concluída", "success");
+      await refreshCurrentView();
+    } catch (error) {
+      el.querySelector("[data-error]").textContent = error.message;
+      button.disabled = false;
+    }
   });
 }
-
-// ─── Modal: novo produto (template para outros CRUDs) ──────
 
 async function openProductModal() {
   let categories = [];
@@ -906,8 +1136,7 @@ async function openProductModal() {
     return;
   }
 
-  const existing = document.getElementById("sw-product-modal");
-  if (existing) existing.remove();
+  document.getElementById("sw-product-modal")?.remove();
 
   const storeSelector =
     stores.length > 1
@@ -916,8 +1145,7 @@ async function openProductModal() {
            <select name="store_id" class="form-select" required>
              ${stores
                .map(
-                 (s) =>
-                   `<option value="${s.id}">${escapeHtml(s.name)}</option>`
+                 (s) => `<option value="${s.id}">${escapeHtml(s.name)}</option>`
                )
                .join("")}
            </select>
@@ -945,15 +1173,14 @@ async function openProductModal() {
                 <option value="">Selecione…</option>
                 ${categories
                   .map(
-                    (c) =>
-                      `<option value="${c.id}">${escapeHtml(c.name)}</option>`
+                    (c) => `<option value="${c.id}">${escapeHtml(c.name)}</option>`
                   )
                   .join("")}
               </select>
             </div>
             <div class="col-3">
               <label class="form-label small">Preço (R$)</label>
-              <input name="price" type="number" step="0.01" min="0" class="form-control" required>
+              <input name="price" type="text" inputmode="decimal" class="form-control" required autocomplete="off" placeholder="0,00">
             </div>
             <div class="col-3">
               <label class="form-label small">SKU</label>
@@ -998,6 +1225,10 @@ async function openProductModal() {
   const errorBox = document.getElementById("sw-product-error");
   const submitBtn = form.querySelector('button[type="submit"]');
 
+  // input type="text" + inputmode="decimal" → a máscara funciona.
+  // Com type="number", o browser descarta a vírgula e "12,50" vira 1250.
+  attachMoneyMask(form.querySelector('input[name="price"]'));
+
   form.addEventListener("submit", async (event) => {
     event.preventDefault();
     errorBox.textContent = "";
@@ -1007,10 +1238,12 @@ async function openProductModal() {
 
     const f = new FormData(form);
     const storeId = Number(f.get("store_id"));
+    // attachMoneyMask normaliza vírgula → ponto no blur.
+    const rawPrice = String(f.get("price") || "").replace(",", ".");
     const payload = {
       name: (f.get("name") || "").trim(),
       category_id: Number(f.get("category_id")),
-      price: Number(f.get("price")),
+      price: Number(rawPrice),
       stock: Number(f.get("stock") || 0),
       minimum_stock: Number(f.get("minimum_stock") || 5),
       sku: (f.get("sku") || "").trim() || null,
@@ -1029,23 +1262,7 @@ async function openProductModal() {
       submitBtn.innerHTML = original;
     }
   });
-  form.querySelectorAll('input[name="price"]').forEach((el) => attachMoneyMask(el));
 }
-
-// ─── Roteamento de views ───────────────────────────────────
-const MOVEMENT_TYPES = [
-  { value: "purchase",     label: "Compra (entrada)" },
-  { value: "return_in",    label: "Devolução do cliente (entrada)" },
-  { value: "return_out",   label: "Devolução ao fornecedor (saída)" },
-  { value: "loss",         label: "Perda / avaria / vencimento (saída)" },
-  { value: "internal_use", label: "Consumo interno (saída)" },
-];
-
-const REASON_REQUIRED = new Set([
-  "loss", "internal_use", "return_out", "return_in",
-]);
-
-const ENTRY_TYPES = new Set(["purchase", "return_in"]);
 
 async function openAdjustmentModal(productId, productName, currentStock) {
   document.getElementById("sw-adjust-modal")?.remove();
@@ -1074,8 +1291,7 @@ async function openAdjustmentModal(productId, productName, currentStock) {
             </div>
             <div class="col-6">
               <label class="form-label small">Quantidade</label>
-              <input name="quantity" type="number" min="1" value="1"
-                     class="form-control" required>
+              <input name="quantity" type="number" min="1" value="1" class="form-control" required>
             </div>
             <div class="col-6 d-flex align-items-end">
               <div class="small text-muted">
@@ -1092,8 +1308,7 @@ async function openAdjustmentModal(productId, productName, currentStock) {
               <div id="sw-adjust-error" class="text-danger small" role="alert"></div>
             </div>
             <div class="col-12 d-flex justify-content-end gap-2">
-              <button type="button" class="btn btn-outline-secondary"
-                      data-bs-dismiss="modal">Cancelar</button>
+              <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
               <button type="submit" class="btn btn-primary">Aplicar</button>
             </div>
           </form>
@@ -1154,19 +1369,23 @@ async function openAdjustmentModal(productId, productName, currentStock) {
   });
 }
 
+// ═══════════════════════════════════════════════════════════
+// Routing
+// ═══════════════════════════════════════════════════════════
+
 const VIEWS = {
   customer: {
     orders: viewCustomerOrders,
     appointments: viewCustomerAppointments,
   },
   merchant: {
-  overview: viewMerchantOverview,
-  alerts: viewMerchantAlerts,
-  products: viewMerchantProducts,
-  inventory: viewMerchantInventory,
-  movements: viewMerchantMovements,
-  appointments: viewMerchantAppointments,
-},
+    overview: viewMerchantOverview,
+    alerts: viewMerchantAlerts,
+    products: viewMerchantProducts,
+    inventory: viewMerchantInventory,
+    movements: viewMerchantMovements,
+    appointments: viewMerchantAppointments,
+  },
   provider: {
     overview: viewProviderOverview,
     services: viewProviderServices,
@@ -1190,6 +1409,8 @@ const VIEWS = {
   },
 };
 
+// Declarado antes de qualquer view rodar. Antes vivia ~800 linhas
+// abaixo, criando TDZ se algum dia load() fosse movido para cima.
 let currentView = "";
 let mediaSearchTerm = "";
 
@@ -1199,46 +1420,55 @@ async function renderCurrentView() {
   const fn = views[currentView];
   const body = document.getElementById("sw-body");
   if (!body) return;
-  body.innerHTML = `<div class="text-muted small">Carregando...</div>`;
+
+  // aria-live no próprio #sw-body: ao trocar de aba, o SR anuncia
+  // o conteúdo novo. aria-busy=true durante o fetch evita anúncio
+  // prematuro do placeholder "Carregando...".
+  body.setAttribute("aria-busy", "true");
+  body.textContent = "Carregando...";
+
+  let html;
   try {
-    const html = fn ? await fn() : "";
-    body.innerHTML =
-      html || alertBox("Sem dados para exibir ainda.", "secondary");
-
-    bindActionButtons(body);
-    bindCustomActions(body);
-    bindMediaLibrary(body);
-
-    body
-      .querySelector("#sw-provider-form")
-      ?.addEventListener("submit", async (e) => {
-        e.preventDefault();
-        const f = new FormData(e.currentTarget);
-        try {
-          await api.providerUpdateProfile({
-            headline: f.get("headline") || null,
-            bio: f.get("bio") || null,
-            city: f.get("city") || null,
-            state: f.get("state") || null,
-            years_experience: f.get("years_experience")
-              ? Number(f.get("years_experience"))
-              : null,
-            service_radius_km: f.get("service_radius_km")
-              ? Number(f.get("service_radius_km"))
-              : null,
-            is_available: f.get("is_available") === "on",
-            offers_remote: f.get("offers_remote") === "on",
-            offers_in_person: f.get("offers_in_person") === "on",
-          });
-          toast("Perfil atualizado", "success");
-        } catch (error) {
-          toast(error.message, "danger");
-        }
-      });
+    html = fn ? await fn() : "";
   } catch (error) {
+    body.textContent = "";
     body.innerHTML = alertBox(error.message);
+    body.setAttribute("aria-busy", "false");
     toast(error.message, "danger");
+    return;
   }
+
+  body.innerHTML = html || alertBox("Sem dados para exibir ainda.", "light");
+  body.setAttribute("aria-busy", "false");
+
+  bindActionButtons(body);
+  bindCustomActions(body);
+  bindMediaLibrary(body);
+
+  body.querySelector("#sw-provider-form")?.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const f = new FormData(e.currentTarget);
+    try {
+      await api.providerUpdateProfile({
+        headline: f.get("headline") || null,
+        bio: f.get("bio") || null,
+        city: f.get("city") || null,
+        state: f.get("state") || null,
+        years_experience: f.get("years_experience")
+          ? Number(f.get("years_experience"))
+          : null,
+        service_radius_km: f.get("service_radius_km")
+          ? Number(f.get("service_radius_km"))
+          : null,
+        is_available: f.get("is_available") === "on",
+        offers_remote: f.get("offers_remote") === "on",
+        offers_in_person: f.get("offers_in_person") === "on",
+      });
+      toast("Perfil atualizado", "success");
+    } catch (error) {
+      toast(error.message, "danger");
+    }
+  });
 }
 
 function refreshCurrentView() {
@@ -1250,6 +1480,7 @@ function renderShell() {
   const role = user.role;
   const tabs = NAV[role] || [];
   if (!currentView) currentView = tabs[0]?.id || "";
+
   host.innerHTML = `
     <div class="sw-panel p-4 mb-3 d-flex flex-wrap justify-content-between align-items-center gap-2">
       <div>
@@ -1259,35 +1490,41 @@ function renderShell() {
         )}</span>
       </div>
       <button class="btn btn-sm btn-outline-secondary" id="sw-refresh">
-        <i class="bi bi-arrow-clockwise me-1"></i>Atualizar
+        <i class="bi bi-arrow-clockwise me-1" aria-hidden="true"></i>Atualizar
       </button>
     </div>
-    <ul class="nav nav-pills mb-3 gap-1 flex-wrap" id="sw-tabs">
+    <ul class="nav nav-pills mb-3 gap-1 flex-wrap" id="sw-tabs" role="tablist">
       ${tabs
         .map(
           (t) =>
-            `<li class="nav-item">
+            `<li class="nav-item" role="presentation">
               <button class="nav-link ${
                 t.id === currentView ? "active" : ""
-              }" data-view="${t.id}">${escapeHtml(t.label)}</button>
+              }" data-view="${t.id}" role="tab" aria-selected="${
+                t.id === currentView
+              }">${escapeHtml(t.label)}</button>
             </li>`
         )
         .join("")}
     </ul>
-    <div id="sw-body" class="text-muted">Carregando dados...</div>`;
+    <div id="sw-body" class="text-muted" aria-live="polite" aria-busy="false">Carregando dados...</div>`;
 
   host.querySelectorAll("[data-view]").forEach((btn) =>
     btn.addEventListener("click", () => {
       currentView = btn.dataset.view;
-      host
-        .querySelectorAll("[data-view]")
-        .forEach((b) => b.classList.toggle("active", b === btn));
+      host.querySelectorAll("[data-view]").forEach((b) => {
+        const active = b === btn;
+        b.classList.toggle("active", active);
+        b.setAttribute("aria-selected", String(active));
+      });
       renderCurrentView();
     })
   );
+
   document
     .getElementById("sw-refresh")
     ?.addEventListener("click", renderCurrentView);
+
   renderCurrentView();
 }
 
