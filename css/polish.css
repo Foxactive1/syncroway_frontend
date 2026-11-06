@@ -418,3 +418,88 @@ body {
   }
 }
 
+/* ═══════════════════════════════════════════════════════════════
+   Acessibilidade e acabamento final do cabeçalho
+   ═══════════════════════════════════════════════════════════════ */
+
+/* Classes utilitárias próprias usadas pelo HTML e pelos componentes JS. */
+.sw-sr-only,
+.sw-skip-link {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  padding: 0 !important;
+  margin: -1px !important;
+  overflow: hidden !important;
+  clip: rect(0, 0, 0, 0) !important;
+  clip-path: inset(50%) !important;
+  white-space: nowrap !important;
+  border: 0 !important;
+}
+
+.sw-skip-link:focus,
+.sw-skip-link:focus-visible {
+  position: fixed !important;
+  top: 1rem !important;
+  left: 1rem !important;
+  z-index: 1100 !important;
+  width: auto !important;
+  height: auto !important;
+  margin: 0 !important;
+  padding: 0.75rem 1rem !important;
+  overflow: visible !important;
+  clip: auto !important;
+  clip-path: none !important;
+  white-space: normal !important;
+  color: #fff !important;
+  background: var(--sw-primary) !important;
+  border: 0 !important;
+  border-radius: 0.75rem !important;
+  box-shadow: var(--sw-shadow-md);
+  text-decoration: none !important;
+}
+
+/* Links do cabeçalho: remove o estilo padrão do navegador e padroniza estados. */
+.sw-header .sw-link,
+.sw-header .sw-navlink {
+  color: var(--sw-muted);
+  text-decoration: none !important;
+  transition: color 0.18s ease, background 0.18s ease, transform 0.18s ease;
+}
+
+.sw-header .sw-link:hover,
+.sw-header .sw-link:focus-visible,
+.sw-header .sw-navlink:hover,
+.sw-header .sw-navlink:focus-visible {
+  color: var(--sw-primary);
+  text-decoration: none !important;
+}
+
+.sw-header .sw-navlink {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 42px;
+  padding: 0.5rem 0.75rem;
+  border-radius: 11px;
+  white-space: nowrap;
+}
+
+.sw-header .sw-navlink.active,
+.sw-header .sw-navlink.active:hover {
+  color: var(--sw-primary);
+  background: var(--sw-primary-soft);
+  font-weight: 700;
+}
+
+.sw-header .sw-link:focus-visible,
+.sw-header .sw-navlink:focus-visible {
+  outline: 2px solid rgba(91, 53, 213, 0.55);
+  outline-offset: 3px;
+}
+
+@media (hover: hover) {
+  .sw-header .sw-navlink:hover {
+    background: var(--sw-primary-soft);
+  }
+}
